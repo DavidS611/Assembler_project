@@ -27,7 +27,6 @@ The assembler supports different addressing modes to allow for flexible operand 
 
 Code: 0.
 Mode: Instant.
-
 Additional Words: Contains the number in 12 bits.
 Way of Writing: Operand starts with '#' followed by a number. Example: mov #15, r0.
 
