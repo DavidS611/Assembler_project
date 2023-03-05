@@ -1,4 +1,4 @@
-#Project Description
+# Project Description
 
 This project involves working with C source files (.c) and header files (.h), as well as compiled and linked executable files. A makefile is also included to automate the build process. Assembly inputs and outputs, as well as screenshots of any errors encountered, are required.
 
@@ -22,7 +22,7 @@ Bits 6-9 represent the opcode, with 16 available operations (0-15).
 
 Bits 10-13 represent the addressing modes for the parameters, and are relevant only for jmp/bne/jsr operations. These codes use the same addressing modes as the source and destination operands.
 
-##Addressing Mode
+## Addressing Mode
 The assembler supports different addressing modes to allow for flexible operand specification. Each addressing mode has a code and a way of writing the operand.
 
 Code: 0
