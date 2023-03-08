@@ -3,7 +3,7 @@
 symbol_table *first_pass(char *file_name, FILE *fp_am){
     symbol_table *st = (symbol_table*) malloc(sizeof(symbol_table));
     int line_number=1, error_state = NO_ERROR, ic, dc;
-    char line[LINE_SIZE], *label_name=NULL;
+    char line[LINE_SIZE];
 
     /* Initializing */
     ic = START_MEMORY;
@@ -403,4 +403,18 @@ void print_symbol_table(symbol_table* st) {
         curr = curr->next;
     }
     putchar('\n');
+}
+
+void free_symbol_table(symbol_table* table) {
+    symbol_entry* entry = table->head;
+    symbol_entry* next_entry;
+
+    while (entry != NULL) {
+        next_entry = entry->next;
+        free(entry->label);
+        free(entry);
+        entry = next_entry;
+    }
+
+    free(table);
 }

@@ -34,4 +34,6 @@ int instruction_counter(char *line);
 
 void correcting_data(symbol_table *st, int ic);
 
+void free_symbol_table(symbol_table *st);
+
 #endif /*MMN14_FIRST_PASS_H*/

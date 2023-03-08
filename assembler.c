@@ -30,6 +30,7 @@ void assembler(int number_of_arg, char *file[]){
         delete_file(expanded_macro_file, NULL);
 
         i++;
+        free_symbol_table(symtab);
         free_pointers( 2, as_filename, expanded_macro_file);
         close_files(2, fp, fp_am);
     }
