@@ -33,6 +33,8 @@ void remove_comment(char *str);
  */
 void trim_whitespace(char *str);
 
+char * strtok_trimmed(char *str, const char *delim);
+
 /**
  * Duplicates a string into dynamically allocated memory.
  *

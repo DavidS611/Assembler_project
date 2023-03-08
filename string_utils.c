@@ -46,6 +46,13 @@ void trim_whitespace(char *str) {
     str[len] = '\0';
 }
 
+char * strtok_trimmed(char *str, const char *delim) {
+    char *token = strtok(str, delim);
+    trim_whitespace(token);
+    return token;
+}
+
+
 char *_strdup(char *filename, const char *str){
     char *p;
 

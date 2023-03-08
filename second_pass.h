@@ -11,9 +11,9 @@
 #define EXTERNAL (0x1)
 #define RELOCATABLE (0x2)
 
+#define DIRECT_ADDR (0x1)
+#define JMP_ADDR (0x2)
 #define REG_ADDR (0x3)
-#define LABEL_ADDR (0x2)
-
 
 #define MOV 0x0
 #define CMP 0x1
@@ -47,7 +47,8 @@
 #define SRC_OPERAND_SIZE_SHIFT 4
 #define DEST_OPERAND_SIZE_SHIFT 2
 #define ARE_SHIFT 2
-
+#define R6_SHIFT 8
+#define R7_SHIFT 2
 
 void second_pass(symbol_table *st, FILE *fp_am);
 
