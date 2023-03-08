@@ -1,0 +1,15 @@
+;bs: .string "abcdef"
+;END: stop
+;ls: .data 3,22,-1
+
+;sub r1,r4
+
+;label: .string "abc"
+;END: sub       #3, label
+;.extern label
+
+;l1: .string ""
+;jmp l1
+
+inc END
+END: .string "a"
