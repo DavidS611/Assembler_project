@@ -1,19 +1,20 @@
 #include "utils.h"
 
-FILE* open_file(const char* filename, const char* mode) {
+FILE* open_file(char* filename, const char* mode) {
     FILE* fp = fopen(filename, mode);
     if (fp == NULL) {
-        error_msg(filename, 0, "opening file", 0);
+        error_msg(filename, NO_ARGUMENT, NO_ARGUMENT, 1,"Failed to open the file.");
         exit(EXIT_FAILURE);
     }
     return fp;
 }
 
-void generate_filename(const char *filename, const char *suffix, char **new_filename) {
+void generate_filename(char *filename, char *suffix, char **new_filename) {
     int len = strlen(filename) + strlen(suffix) + 1; /* add 1 for null terminator */
     char *temp_filename = malloc(len * sizeof(char));
     if (temp_filename == NULL) {
-        ALLOCATION_ERROR_(filename, NO_ARGUMENT, EMPTY_STRING, "new filename", NO_ARGUMENT);
+        error_msg(filename, NO_ARGUMENT, NO_ARGUMENT,
+                  4, "Failed to allocate memory for file name \"", filename, suffix, "\"");
         exit(EXIT_FAILURE);
     }
     strcpy(temp_filename, filename);
@@ -22,7 +23,7 @@ void generate_filename(const char *filename, const char *suffix, char **new_file
 }
 
 
-void delete_file(const char *file_name, const char *suffix) {
+void delete_file(char *file_name, char *suffix) {
     char file_to_delete[FILENAME_MAX];
 
     strcpy(file_to_delete, file_name);
@@ -30,29 +31,13 @@ void delete_file(const char *file_name, const char *suffix) {
         strcat(file_to_delete, suffix);
     }
 
+    /* Remove file, if fail, print an error message. */
     if (remove(file_to_delete) != 0) {
-        error_msg(file_to_delete, NO_ARGUMENT, DELETE_FILE_ERROR, NO_ARGUMENT);
+        error_msg(file_name, NO_ARGUMENT, NO_ARGUMENT,
+                  3, "Failed to delete \"", file_to_delete, "\"");
         exit(EXIT_FAILURE);
     }
 }
-
-/*
-int search_string_in_file(FILE *fp, const char *string) {
-    char buffer[LINE];
-    while (fgets(buffer, sizeof(buffer), fp) != NULL) {
-        if (strstr(buffer, string) != NULL) {
-            rewind(fp);
-            return 1; */
-/* true *//*
-
-        }
-    }
-    rewind(fp);
-    return 0; */
-/* false *//*
-
-}
-*/
 
 /* This function takes an integer count followed by any number of file pointers
    and closes each of them if they are not null. */
