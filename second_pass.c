@@ -1,12 +1,13 @@
 #include "second_pass.h"
 
-void second_pass(symbol_table *st, FILE *fp_am) {
+void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) {
     char line[LINE_SIZE], *ptr, *instruction, *operand1, *operand2, *parameter1, *parameter2;
     word binary_machine_code;
     hash_map map = create_hash_map();
     int i, map_counter=START_MEMORY;
 
-
+    /* Inserting instructions to the hash map*/
+    rewind(fp_am);
     while (fgets(line, LINE_SIZE, fp_am) != NULL) {
         ptr = line;
         if(strstr(line, ":")!=NULL){
@@ -123,8 +124,8 @@ void second_pass(symbol_table *st, FILE *fp_am) {
 
     }
 
+    /* Inserting directives to the hash map */
     rewind(fp_am);
-    /* Adding data directives to the map */
     while (fgets(line, LINE_SIZE, fp_am) != NULL) {
 
         ptr = line;
@@ -154,6 +155,82 @@ void second_pass(symbol_table *st, FILE *fp_am) {
 
     /* Prints the map */
     /*print_all_addresses(&map, map_counter);*/
+
+    /* Generate object file */
+    object_file_generate(filename, map, st, fp_am, ic, dc);
+    /* Generate entry file (if required) */
+    entry_file_generate(filename, st, fp_am);
+}
+
+void entry_file_generate(char *filename, symbol_table *st, FILE *fp_am){
+    FILE *fp_ent;
+    char *ent_file, line[LINE_SIZE], *entry_label;
+    int numb_of_entries = 0;
+    symbol_entry *se;
+
+    /* Creating entry file */
+    generate_filename(filename, ".ent", &ent_file);
+    fp_ent = open_file(ent_file, "w");
+
+    /* Looking for '.entry' directives & checking if exists in the symbol table */
+    rewind(fp_am);
+    while (fgets(line, LINE_SIZE, fp_am)!=NULL){
+        if((entry_label = strstr(line, ".entry"))!=NULL){
+            entry_label += strlen(".entry"); /* entry_label points after '.entry' directive */
+            trim_whitespace(entry_label); /* Trimming leading and trailing whitespaces */
+            se = get_label(entry_label, st);
+            if (se != NULL){
+                fprintf(fp_ent, "\t%s %d\n", entry_label, se->address);
+                numb_of_entries++;
+            }
+        }
+    }
+
+    /* Deleting empty entry file */
+    if (numb_of_entries == 0){
+        delete_file(ent_file, NULL);
+    }
+
+    free_pointers(1, ent_file);
+    fclose(fp_ent);
+}
+
+void object_file_generate(char *filename, hash_map map, symbol_table *st, FILE *fp_am, int ic, int dc){
+    FILE *fp_ob;
+    char *ob_file, *speical;
+    int map_lines = ic+dc, i;
+    word binary;
+
+    /* Creating object file */
+    generate_filename(filename, ".ob", &ob_file);
+    fp_ob = open_file(ob_file, "w");
+    fprintf(fp_ob, "\t\t%d %d\n", ic-START_MEMORY, dc);
+
+    for(i=START_MEMORY; i<map_lines; i++){
+        binary = get_binary_code_for_decimal_address(&map, i);
+        speical = binary_to_special(binary);
+        fprintf(fp_ob, "0%d\t%s\n", i, speical);
+        free(speical);
+    }
+
+    free_pointers(1, ob_file);
+    fclose(fp_ob);
+}
+
+char *binary_to_special(word binary_address){
+    char special[BITS_PER_WORD+1]; /* +1 for Null terminator */
+    unsigned int mask = 1 << (BITS_PER_WORD-1); /* initialize mask to the most significant bit */
+    int i;
+
+    for (i = 0; i < BITS_PER_WORD; i++, mask >>= 1) { /* shift the mask to the right by 1 */
+        if (binary_address & mask) {
+            special[i] = '/';
+            continue;
+        }
+        special[i] = '.';
+    }
+    special[BITS_PER_WORD] = '\0';
+    return _strdup(NULL, special); /* return a copy of the string */
 }
 
 hash_map create_hash_map(){
@@ -209,10 +286,10 @@ word label_to_word(symbol_table *st, char *label_name){
     symbol_entry *label_entry;
 
     label_entry = get_label(label_name, st);
-    decimal_address = label_entry->address;
     if (label_entry->is_extern==true){
         return EXTERNAL;
     }
+    decimal_address = label_entry->address;
     return ((decimal_address<<ARE_SHIFT)|RELOCATABLE) ;
 }
 

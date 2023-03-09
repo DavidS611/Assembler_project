@@ -6,13 +6,9 @@
 #include "string_utils.h"
 #include "second_pass.h"
 
-/*enum type{Absolute, External, Relocatable};*/
-
 word word_generator(int count, ...);
 
-void second_pass(symbol_table *st, FILE *fp_am);
-
-symbol_table *first_pass(char *file_name, FILE *fp_am);
+void first_pass(char *file_name, FILE *fp_am);
 
 void define_entry_and_extern(char *file_name, int error_state, FILE *fp_am, symbol_table *st);
 

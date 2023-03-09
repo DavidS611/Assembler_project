@@ -50,7 +50,13 @@
 #define R6_SHIFT 8
 #define R7_SHIFT 2
 
-void second_pass(symbol_table *st, FILE *fp_am);
+void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc);
+
+void object_file_generate(char *filename, hash_map map, symbol_table *st, FILE *fp_am, int ic, int dc);
+
+void entry_file_generate(char *filename, symbol_table *st, FILE *fp_am);
+
+char *binary_to_special(word binary_address);
 
 hash_map create_hash_map();
 

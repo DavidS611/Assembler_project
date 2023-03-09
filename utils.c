@@ -4,6 +4,7 @@ FILE* open_file(char* filename, const char* mode) {
     FILE* fp = fopen(filename, mode);
     if (fp == NULL) {
         error_msg(filename, NO_ARGUMENT, NO_ARGUMENT, 1,"Failed to open the file.");
+        free(filename);
         exit(EXIT_FAILURE);
     }
     return fp;

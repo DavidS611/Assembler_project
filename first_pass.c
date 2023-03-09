@@ -1,11 +1,12 @@
 #include "first_pass.h"
 
-symbol_table *first_pass(char *file_name, FILE *fp_am){
+void first_pass(char *file_name, FILE *fp_am){
     symbol_table *st = (symbol_table*) malloc(sizeof(symbol_table));
     int line_number=1, error_state = NO_ERROR, ic, dc;
     char line[LINE_SIZE];
 
     /* Initializing */
+    rewind(fp_am);
     ic = START_MEMORY;
     dc = 0;
     st->head = NULL;
@@ -15,7 +16,7 @@ symbol_table *first_pass(char *file_name, FILE *fp_am){
         /* Looking for possible errors */
         error_handling(file_name, line, &error_state, line_number, st);
         /* Valid label (not in entry or extern and ends with ':') */
-        if(strstr(line, ".entry")==NULL && strstr(line, ".extern")==NULL && strchr(line, ':')!=NULL){
+        if(strstr(line, ".entry")==NULL && strchr(line, ':')!=NULL){
             insert_label(file_name, &error_state, line_number, st, line, &ic, &dc);
         }
         dc += data_counter(line);
@@ -30,12 +31,13 @@ symbol_table *first_pass(char *file_name, FILE *fp_am){
     /* Redefine entry and extern labels */
     define_entry_and_extern(file_name, error_state, fp_am, st);
 
-    print_symbol_table(st);
-    /* If error was found return NULL and do not continue to the second_pass */
+    /*print_symbol_table(st);*/
+    /* If error was found */
     if(error_state){
-        return NULL;
+        exit(EXIT_FAILURE);
     }
-    return st;
+    second_pass(file_name, st, fp_am, ic, dc);
+    free_symbol_table(st);
 }
 
 void define_entry_and_extern(char *file_name, int error_state, FILE *fp_am, symbol_table *st){
@@ -50,16 +52,6 @@ void define_entry_and_extern(char *file_name, int error_state, FILE *fp_am, symb
             trim_whitespace(label_name);
             curr = get_label(label_name ,st);
             curr->is_entry = true;
-            curr->is_code = false;
-            curr->is_data = false;
-        }
-
-        /* Redefine .extern labels */
-        if(strstr(line, ".extern")!=NULL){
-            label_name = strstr(line, ".extern") + strlen(".extern");
-            label_name = strtok(label_name, DELIMITER);
-            curr = get_label(label_name ,st);
-            curr->is_extern = true;
             curr->is_code = false;
             curr->is_data = false;
         }
@@ -108,12 +100,8 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
     if (!new_entry) {
         error_msg(file_name, line_number, error_state,
                   1,"Failed to allocate memory for label entry.");
-        exit(EXIT_FAILURE);
     }
-    new_entry->is_extern=false;
-    new_entry->is_data=false;
-    new_entry->is_entry=false;
-    new_entry->is_code = false;
+    new_entry->is_extern = new_entry->is_data = new_entry->is_entry = new_entry->is_code = false;
 
     strcpy(copy_line, line);
     label_name = strtok(copy_line, ":");
@@ -126,6 +114,13 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
     else if(strstr(line, ".string")!=NULL){
         new_entry->is_data = true;
         new_entry->address = *data_counter;
+    }
+    else if(strstr(line, ".extern")!=NULL){
+        label_name = strstr(line, ".extern") + strlen(".extern");
+        trim_whitespace(label_name);
+        new_entry->label = _strdup(file_name, label_name);
+        new_entry->address = 0;
+        new_entry->is_extern = true;
     }
     else{
         new_entry->is_code = true;
