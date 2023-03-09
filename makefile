@@ -33,9 +33,3 @@ $(TARGET): $(OBJS)
 clean:
 	$(RM) $(OBJS) $(TARGET) *.am *.ob *.ent *.ext
 	
-git:
-	git add $(add)
-	git commit -m "$(m)"
-	git push
-
-
