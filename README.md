@@ -19,7 +19,7 @@ param1, param2, opCode, src_addr, dst_addr,and ARE.
 
 ### The values of each bit in the word have specific meanings:
 
-Bits 0-1: represent E, R, and A.
+#### Bits 0-1: represent E, R, and A.
 
 A (Absolute) has a value of 00 and indicates that the content of the word is not dependent on where the machine code will be loaded. E (External) has a value of 01 and indicates that the content of the word depends on an external symbol. For example, a label defined in a different file. R (Relocatable) has a value of 10 and indicates that the content of the word is dependent on where the machine code will be loaded. For example, a label defined in the same file as the word. Bits 2-3: represent the destination operand's addressing mode:
 
