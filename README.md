@@ -8,7 +8,8 @@ This project involves working with C source files (.c) and header files (.h), as
 
 The hardware used for the project includes eight registers (r0-r7), each with a capacity of 14 bits, as well as a program status word (PSW) register that contains flags for the CPU. The RAM has 256 cells (0-255), with each cell also known as a "word" and containing 14 bits. Numbers are represented using 2's complement for negatives, while characters are represented by their ASCII code. Only integer values are allowed.
 
-The project uses a word format consisting of the following fields: param1, param2, opCode, src_addr, dst_addr,and ARE. The values of each bit in the word have specific meanings:
+The project uses a word format consisting of the following fields:
+param1, param2, opCode, src_addr, dst_addr,and ARE.
 
     --------------------------------------------------
     |13  12|11  10|9  8  7  6|  5  4  |  3  2  | 1 0 |
@@ -16,7 +17,9 @@ The project uses a word format consisting of the following fields: param1, param
     |param1|param2|  opCode  |src_addr|dst_addr| ARE |
     --------------------------------------------------
 
-Bits 0-1: represent E, R, and A.
+The values of each bit in the word have specific meanings:
+
+###Bits 0-1: represent E, R, and A.
 
 A (Absolute) has a value of 00 and indicates that the content of the word is not dependent on where the machine code will be loaded. E (External) has a value of 01 and indicates that the content of the word depends on an external symbol. For example, a label defined in a different file. R (Relocatable) has a value of 10 and indicates that the content of the word is dependent on where the machine code will be loaded. For example, a label defined in the same file as the word. Bits 2-3: represent the destination operand's addressing mode:
 
