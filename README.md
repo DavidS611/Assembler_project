@@ -17,7 +17,7 @@ param1, param2, opCode, src_addr, dst_addr,and ARE.
     |param1|param2|  opCode  |src_addr|dst_addr| ARE |
     --------------------------------------------------
 
-## The values of each bit in the word have specific meanings:
+### The values of each bit in the word have specific meanings:
 
 Bits 0-1: represent E, R, and A.
 
