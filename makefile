@@ -32,4 +32,3 @@ $(TARGET): $(OBJS)
 
 clean:
 	$(RM) $(OBJS) $(TARGET) *.am *.ob *.ent *.ext
-	
