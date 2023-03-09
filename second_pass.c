@@ -21,11 +21,11 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
             operand2 = strtok_trimmed(NULL, DELIMITER);
             /* Instruction address with operands */
             binary_machine_code = bits_calculator(st, instruction, operand1, operand2, NULL, NULL);
-            insert(&map, map_counter++, binary_machine_code);
+            insert(&map, map_counter++, instruction, binary_machine_code);
             /* If both operands are registers only one new word */
             if(is_register(operand1) && is_register(operand2)){
                 binary_machine_code = (register_to_word(operand1)<<R6_SHIFT) | (register_to_word(operand2)<<R7_SHIFT);
-                insert(&map, map_counter++, binary_machine_code);
+                insert(&map, map_counter++, strcat(strcat(operand1, ","), operand2), binary_machine_code);
             }
             else {
                 /* Source address */
@@ -38,7 +38,7 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
                 else{
                     binary_machine_code = num_to_word(operand1); /**maybe need to be shifted ARE*/
                 }
-                insert(&map, map_counter++, binary_machine_code);
+                insert(&map, map_counter++, operand1, binary_machine_code);
 
                 /* Destination address */
                 if (is_register(operand2)){
@@ -47,7 +47,7 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
                 else if(is_label(operand2, st)){
                     binary_machine_code = label_to_word(st, operand2);
                 }
-                insert(&map, map_counter++, binary_machine_code);
+                insert(&map, map_counter++, operand2, binary_machine_code);
             }
         }
 
@@ -61,17 +61,16 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
                 parameter2 = strtok_trimmed(NULL, ")");
                 /* instruction with label and parameters */
                 binary_machine_code = bits_calculator(st, instruction, NULL, operand2, parameter1, parameter2);
-                insert(&map, map_counter++, binary_machine_code);
+                insert(&map, map_counter++, instruction, binary_machine_code);
 
                 /* label address */
                 binary_machine_code = label_to_word(st, operand2);
-                insert(&map, map_counter++, binary_machine_code);
+                insert(&map, map_counter++, operand2, binary_machine_code);
 
                 /* First and Second parameters */
                 if (is_register(parameter1) && is_register(parameter2)){
                     binary_machine_code = (register_to_word(parameter1)<<R6_SHIFT) | (register_to_word(parameter2)<<R7_SHIFT);
-                    insert(&map, map_counter++, binary_machine_code);
-
+                    insert(&map, map_counter++, strcat(strcat(parameter2,","), parameter1), binary_machine_code);
                 }
                 else {
                     /* First parameter */
@@ -84,7 +83,7 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
                     else{
                         binary_machine_code = num_to_word(parameter1)<<ARE_SHIFT;
                     }
-                    insert(&map, map_counter++, binary_machine_code);
+                    insert(&map, map_counter++, parameter1, binary_machine_code);
 
                     /* Second parameter */
                     if (is_register(parameter2)){
@@ -96,14 +95,14 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
                     else{
                         binary_machine_code = num_to_word(parameter2);
                     }
-                    insert(&map, map_counter++, binary_machine_code);
+                    insert(&map, map_counter++, parameter2, binary_machine_code);
                 }
             }
             /* Second group instruction without parameters */
             else{
                 /* Instruction with operand */
                 binary_machine_code = bits_calculator(st, instruction, NULL, operand2,NULL,NULL);
-                insert(&map, map_counter++, binary_machine_code);
+                insert(&map, map_counter++, instruction, binary_machine_code);
 
                 /* Source operand */
                 if (strcmp(instruction, "prn")==0 && strchr(operand2, '#')!=NULL){
@@ -112,14 +111,14 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
                 else{
                     binary_machine_code = label_to_word(st, operand2);
                 }
-                insert(&map, map_counter++, binary_machine_code);
+                insert(&map, map_counter++, operand2, binary_machine_code);
 
             }
         }
 
         else if(third_group_instructions(instruction)){
             binary_machine_code = bits_calculator(NULL, instruction, NULL, NULL, NULL, NULL);
-            insert(&map, map_counter++, binary_machine_code);
+            insert(&map, map_counter++, instruction, binary_machine_code);
         }
 
     }
@@ -138,28 +137,63 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
             operand1 = strtok_trimmed(NULL, DELIMITER);
             for (i = 1; i < strlen(operand1) - 1; i++) {
                 binary_machine_code = char_to_word(operand1[i]);
-                insert(&map, map_counter++, binary_machine_code);
+                insert(&map, map_counter++, operand1+i, binary_machine_code);
             }
             binary_machine_code = char_to_word('\0');
-            insert(&map, map_counter++, binary_machine_code);
+            insert(&map, map_counter++, "\\0",binary_machine_code);
         }
         else if (strcmp(instruction, ".data") == 0) {
             operand1 = strtok_trimmed(NULL, COMMA);
             while (operand1 != NULL) {
                 binary_machine_code = num_to_word(operand1);
-                insert(&map, map_counter++, binary_machine_code);
+                insert(&map, map_counter++, operand1, binary_machine_code);
                 operand1 = strtok_trimmed(NULL, COMMA);
             }
         }
     }
 
     /* Prints the map */
-    /*print_all_addresses(&map, map_counter);*/
+    print_all_addresses(&map, map_counter);
 
     /* Generate object file */
     object_file_generate(filename, map, st, fp_am, ic, dc);
     /* Generate entry file (if required) */
     entry_file_generate(filename, st, fp_am);
+    /* Generate extern file (if required) */
+    extern_file_generate(filename, st, map, map_counter);
+}
+
+void extern_file_generate(char *filename, symbol_table *st, hash_map map, int map_counter){
+    FILE *fp_ext;
+    char *ext_file;
+    int numb_of_externs = 0, i;
+    symbol_entry *se=st->head;
+
+    /* Creating extern file */
+    generate_filename(filename, ".ext", &ext_file);
+    fp_ext = open_file(ext_file, "w");
+
+    /* Looking for extern & deriving label name from symbol table */
+    for (i=START_MEMORY; i<map_counter; i++){
+        if (map.nodes[i].binary_address == EXTERNAL) {
+            while (se!=NULL) {
+                if (strcmp(se->label,map.nodes[i].code) == 0) {
+                    fprintf(fp_ext,"%s\t%d\n", se->label, map.nodes[i].decimal_address);
+                    numb_of_externs++;
+                }
+                se = se->next;
+            }
+            se=st->head;
+        }
+    }
+
+    /* Deleting empty entry file */
+    if (numb_of_externs == 0){
+        delete_file(ext_file, NULL);
+    }
+
+    free(ext_file);
+    fclose(fp_ext);
 }
 
 void entry_file_generate(char *filename, symbol_table *st, FILE *fp_am){
@@ -180,7 +214,7 @@ void entry_file_generate(char *filename, symbol_table *st, FILE *fp_am){
             trim_whitespace(entry_label); /* Trimming leading and trailing whitespaces */
             se = get_label(entry_label, st);
             if (se != NULL){
-                fprintf(fp_ent, "\t%s %d\n", entry_label, se->address);
+                fprintf(fp_ent, "%s\t%d\n", entry_label, se->address);
                 numb_of_entries++;
             }
         }
@@ -251,9 +285,10 @@ int hash_function(int decimal_address) {
     return decimal_address % HASH_MAP_SIZE;
 }
 
-void insert(struct hash_map *map, int decimal_address, unsigned short int binary_address) {
+void insert(struct hash_map *map, int decimal_address, char *code, unsigned short int binary_address) {
     int index = hash_function(decimal_address);
     map->nodes[index].decimal_address = decimal_address;
+    strcpy(map->nodes[index].code, code);
     map->nodes[index].binary_address = binary_address;
 }
 
@@ -270,16 +305,22 @@ void print_all_addresses(hash_map *map, int map_counter) {
         return;
     }
 
-    printf("---------------------------------------\n");
-    printf("\t\tMAP:\n");
-    printf("---------------------------------------\n");
-    printf("Decimal address\t|\tBinary address\n");
-    printf("---------------------------------------\n");
+    printf("-------------------------------------------------------------\n");
+    printf("\t\t\tMAP:\n");
+    printf("-------------------------------------------------------------\n");
+    printf("Decimal address\t|\tCode \t|\tBinary address\n");
+    printf("-------------------------------------------------------------\n");
     for (i = START_MEMORY; i < map_counter; i++) {
         printf("\t%d\t|\t", map->nodes[i].decimal_address);
+        if (map->nodes[i].code[strlen(map->nodes[i].code)-1]=='\"') {
+            printf("%c\t|\t", map->nodes[i].code[0]);
+        } else {
+            printf("%s\t|\t", map->nodes[i].code);
+        }
         print_word_bits(map->nodes[i].binary_address);
     }
 }
+
 
 word label_to_word(symbol_table *st, char *label_name){
     int decimal_address;

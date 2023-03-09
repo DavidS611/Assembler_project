@@ -16,7 +16,7 @@ void first_pass(char *file_name, FILE *fp_am){
         /* Looking for possible errors */
         error_handling(file_name, line, &error_state, line_number, st);
         /* Valid label (not in entry or extern and ends with ':') */
-        if(strstr(line, ".entry")==NULL && strchr(line, ':')!=NULL){
+        if(strstr(line, ".entry")==NULL && (strchr(line, ':')!=NULL || strstr(line, ".extern")!=NULL)){
             insert_label(file_name, &error_state, line_number, st, line, &ic, &dc);
         }
         dc += data_counter(line);
@@ -31,8 +31,8 @@ void first_pass(char *file_name, FILE *fp_am){
     /* Redefine entry and extern labels */
     define_entry_and_extern(file_name, error_state, fp_am, st);
 
-    /*print_symbol_table(st);*/
-    /* If error was found */
+    print_symbol_table(st);
+    /* If error was found don't continue to the second pass */
     if(error_state){
         exit(EXIT_FAILURE);
     }
@@ -45,7 +45,7 @@ void define_entry_and_extern(char *file_name, int error_state, FILE *fp_am, symb
     symbol_entry *curr=NULL;
 
     while(fgets(line, LINE_SIZE, fp_am)!=NULL) {
-        /* Redefine .entry labels */
+        /* Define .entry labels */
         if(strstr(line, ".entry")!=NULL){
             label_name = strstr(line, ".entry") + strlen(".entry");
             label_name = strtok(label_name, DELIMITER);
@@ -73,7 +73,7 @@ int is_label(char *str, symbol_table *st) {
     symbol_entry *curr = st->head;
     while (curr != NULL) {
         if (strcmp(curr->label, str) == 0) {
-            return curr->address;
+            return true;
         }
         curr = curr->next;
     }
@@ -105,7 +105,6 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
 
     strcpy(copy_line, line);
     label_name = strtok(copy_line, ":");
-    new_entry->label = _strdup(file_name, label_name);
 
     if(strstr(line, ".data")!=NULL){
         new_entry->is_data=true;
@@ -118,14 +117,14 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
     else if(strstr(line, ".extern")!=NULL){
         label_name = strstr(line, ".extern") + strlen(".extern");
         trim_whitespace(label_name);
-        new_entry->label = _strdup(file_name, label_name);
-        new_entry->address = 0;
         new_entry->is_extern = true;
     }
     else{
         new_entry->is_code = true;
         new_entry->address = *instruction_counter;
     }
+
+    new_entry->label = _strdup(file_name, label_name);
 
     new_entry->next = st->head;
     st->head = new_entry;
@@ -380,6 +379,7 @@ void error_handling(char *file, char *line, int *error_state, int line_number, s
 
 void print_symbol_table(symbol_table* st) {
     symbol_entry* curr = st->head;
+    char type[6];
 
     /* Skip printing if the symbol table is empty */
     if (st->head == NULL) {
@@ -392,9 +392,11 @@ void print_symbol_table(symbol_table* st) {
     printf("decimal address |\tlabel name  |\ttype\n");
     printf("----------------------------------------------------\n");
     while (curr != NULL) {
-        printf("\t%d\t|\t%s\t    |\t%s\n", curr->address, curr->label,
-               (curr->is_data==true || curr->is_code==true)? (curr->is_data==true ? "DATA" : "CODE") :
-               (curr->is_extern==true ? "EXTERN" : "ENTRY"));
+        printf("\t%d\t|\t%s\t    |\t", curr->is_extern==true ?  0: curr->address, curr->label);
+        strcpy(type, curr->is_data==true ? "DATA" :
+                (curr->is_code==true ? "CODE" :
+                curr->is_entry==true ? "ENTRY" : "EXTERN"));
+        printf("%s\n", type);
         curr = curr->next;
     }
     putchar('\n');

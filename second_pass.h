@@ -56,13 +56,15 @@ void object_file_generate(char *filename, hash_map map, symbol_table *st, FILE *
 
 void entry_file_generate(char *filename, symbol_table *st, FILE *fp_am);
 
+void extern_file_generate(char *filename, symbol_table *st, hash_map map, int map_counter);
+
 char *binary_to_special(word binary_address);
 
 hash_map create_hash_map();
 
 int hash_function(int decimal_address);
 
-void insert(struct hash_map *map, int decimal_address, unsigned short int binary_address);
+void insert(struct hash_map *map, int decimal_address, char *code, unsigned short int binary_address);
 
 unsigned short int get_binary_code_for_decimal_address(struct hash_map *map, int decimal_address);
 

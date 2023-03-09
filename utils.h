@@ -41,13 +41,9 @@ typedef struct symbolTable {
 
 typedef unsigned short word;
 
-typedef struct map {
-    int address;
-    word data;
-} map;
-
 typedef struct hash_node {
     int decimal_address;
+    char code[LABEL_SIZE];
     unsigned short int binary_address;
 } hash_node;
 
