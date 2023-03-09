@@ -23,12 +23,16 @@ param1, param2, opCode, src_addr, dst_addr,and ARE.
   represent E, R, and A.
 
   A (Absolute) has a value of 00 and indicates that the content of the word is not dependent on where the machine code will be loaded.
+
   E (External) has a value of 01 and indicates that the content of the word depends on an external symbol. For example, a label defined in a different file.
+
   R (Relocatable) has a value of 10 and indicates that the content of the word is dependent on where the machine code will be loaded. For example, a label defined in the same file as the word. Bits 2-3: represent the destination operand's addressing mode:
 
-  00 represents an immediate number (e.g., #4).
-  01 represents a label (e.g., HELLO).
-  11 represents a register (e.g., r1).
+  '00' represents an immediate number (e.g., #4).
+
+  '01' represents a label (e.g., HELLO).
+
+  '11' represents a register (e.g., r1).
 
 #### Bits 4-5:
   represent the source operand's addressing mode, and use the same codes as the destination operand.
