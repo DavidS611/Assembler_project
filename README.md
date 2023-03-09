@@ -22,17 +22,20 @@ param1, param2, opCode, src_addr, dst_addr,and ARE.
 #### Bits 0-1:
   represent E, R, and A.
 
-  A (Absolute) has a value of 00 and indicates that the content of the word is not dependent on where the machine code will be loaded.
+  A (Absolute) has a value of '00' and indicates that the content of the word is not dependent on where the machine code will be loaded.
 
-  E (External) has a value of 01 and indicates that the content of the word depends on an external symbol. For example, a label defined in a different file.
+  E (External) has a value of '01' and indicates that the content of the word depends on an external symbol. For example, a label defined in a different file.
 
-  R (Relocatable) has a value of 10 and indicates that the content of the word is dependent on where the machine code will be loaded. For example, a label defined in the same file as the word. Bits 2-3: represent the destination operand's addressing mode:
+  R (Relocatable) has a value of '10' and indicates that the content of the word is dependent on where the machine code will be loaded. For example, a label defined in the same file as the word.
 
-  '00' represents an immediate number (e.g., #4).
+#### Bits 2-3:
+  represent the destination operand's addressing mode:
 
-  '01' represents a label (e.g., HELLO).
+  '00' represents an immediate number (e.g., #3).
 
-  '11' represents a register (e.g., r1).
+  '01' represents a label (e.g., DSH).
+
+  '11' represents a register (e.g., r0).
 
 #### Bits 4-5:
   represent the source operand's addressing mode, and use the same codes as the destination operand.
@@ -41,21 +44,29 @@ param1, param2, opCode, src_addr, dst_addr,and ARE.
   represent the opcode, with 16 available operations (0-15).
 
 #### Bits 10-13:
-  represent the addressing modes for the parameters, and are relevant only for jmp/bne/jsr operations. These codes use the same addressing modes as the source and destination operands.
+  represent the addressing modes for the parameters, and are relevant only for 'jmp'/'bne'/'jsr' operations. These codes use the same addressing modes as the source and destination operands.
 
 ### Addressing Mode:
 The assembler supports different addressing modes to allow for flexible operand specification. Each addressing mode has a code and a way of writing the operand.
 
 #### Code: 0.
-Mode: Instant. Additional Words: Contains the number in 12 bits. Way of Writing: Operand starts with '#' followed by a number. Example: mov #15, r0.
+Mode: Instant. Additional Words: Contains the number in 12 bits. Way of Writing: Operand starts with '#' followed by a number. 
+
+Example: mov #15, r0.
 
 #### Code: 1.
-Mode: Direct. Additional Words: Destination of a word in memory. Way of Writing: The operand is a label declared by .data, .string, or extern. Example: mov x, r1.
+Mode: Direct. Additional Words: Destination of a word in memory. Way of Writing: The operand is a label declared by .data, .string, or extern.
+
+Example: mov x, r1.
 
 #### Code: 2.
-Mode: Relative. Additional Words: 3 Direct. Way of Writing: At most 3 words, the first is the label and the 2 others are the parameters. If both parameters are registers then they will be combined into 1 word. Example: jmp L1(r2,r3).
+Mode: Relative. Additional Words: 3 Direct. Way of Writing: At most 3 words, the first is the label and the 2 others are the parameters. If both parameters are registers then they will be combined into 1 word.
+
+Example: jmp L1(r2,r3).
 
 #### Code: 3.
-Mode: Register. Additional Words: None. Way of Writing: A register, if it’s a source then it will contain in bits 2-7 the register number, if it’s destination than it will be bits 8-13. Example: mov r1, r2.
+Mode: Register. Additional Words: None. Way of Writing: A register, if it’s a source then it will contain in bits 2-7 the register number, if it’s destination than it will be bits 8-13.
+
+Example: mov r1, r2.
 
 For jmp, bne, and jsr operations, there are additional parameters addressing modes that are relevant. These addressing modes are the same as source and destination codes
