@@ -8,7 +8,13 @@ This project involves working with C source files (.c) and header files (.h), as
 
 The hardware used for the project includes eight registers (r0-r7), each with a capacity of 14 bits, as well as a program status word (PSW) register that contains flags for the CPU. The RAM has 256 cells (0-255), with each cell also known as a "word" and containing 14 bits. Numbers are represented using 2's complement for negatives, while characters are represented by their ASCII code. Only integer values are allowed.
 
-The project uses a word format consisting of the following fields: par1, par2, opcode, srcAdd, and destAdd. The values of each bit in the word have specific meanings:
+The project uses a word format consisting of the following fields: param1, param2, opCode, src_addr, dst_addr,and ARE. The values of each bit in the word have specific meanings:
+
+    --------------------------------------------------
+    |13  12|11  10|9  8  7  6|  5  4  |  3  2  | 1 0 |
+    --------------------------------------------------
+    |param1|param2|  opCode  |src_addr|dst_addr| ARE |
+    --------------------------------------------------
 
 Bits 0-1: represent E, R, and A.
 
