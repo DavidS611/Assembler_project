@@ -13,7 +13,7 @@ LOOP:   jmp L1(#-1,r6)
         m1
 L1:     inc K
         bne LOOP(K,STR)
-        mcr m2
+        mcr m1
                 add r7,r1
                 sub r6,r4
         endmcr

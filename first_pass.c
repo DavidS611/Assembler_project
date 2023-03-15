@@ -3,21 +3,20 @@
 void first_pass(char *file_name, FILE *fp_am){
     symbol_table *st = (symbol_table*) malloc(sizeof(symbol_table));
     int line_number=1, error_state = NO_ERROR, ic, dc;
-    char line[LINE_SIZE];
+    char line[LINE_SIZE], *file_am;
 
     /* Initializing */
     rewind(fp_am);
     ic = START_MEMORY;
     dc = 0;
     st->head = NULL;
+    generate_filename(file_name, ".am", &file_am);
 
     /* Filling the symbol-table */
     while(fgets(line, LINE_SIZE, fp_am)!=NULL) {
-        /* Looking for possible errors */
-        error_handling(file_name, line, &error_state, line_number, st);
         /* Valid label (not in entry or extern and ends with ':') */
         if(strstr(line, ".entry")==NULL && (strchr(line, ':')!=NULL || strstr(line, ".extern")!=NULL)){
-            insert_label(file_name, &error_state, line_number, st, line, &ic, &dc);
+            insert_label(file_am, &error_state, line_number, st, line, &ic, &dc);
         }
         dc += data_counter(line);
         ic += instruction_counter(line);
@@ -27,30 +26,42 @@ void first_pass(char *file_name, FILE *fp_am){
 
     correcting_data(st, ic);
 
+    /* Redefine entry labels */
+    define_entry_labels(file_am, error_state, fp_am, st);
+
+    line_number=1;
     rewind(fp_am);
-    /* Redefine entry and extern labels */
-    define_entry_and_extern(file_name, error_state, fp_am, st);
+    while(fgets(line, LINE_SIZE, fp_am)!=NULL) {
+        syntax_errors(file_am, line, &error_state, line_number++, st);
+    }
 
     print_symbol_table(st);
     /* If error was found don't continue to the second pass */
     if(error_state){
-        exit(EXIT_FAILURE);
+        free(file_am);
+        free_symbol_table(st);
+        return;
     }
     second_pass(file_name, st, fp_am, ic, dc);
+    free(file_am);
     free_symbol_table(st);
 }
 
-void define_entry_and_extern(char *file_name, int error_state, FILE *fp_am, symbol_table *st){
+void define_entry_labels(char *file_name, int error_state, FILE *fp_am, symbol_table *st){
     char line[LINE_SIZE], *label_name;
     symbol_entry *curr=NULL;
 
+    rewind(fp_am);
     while(fgets(line, LINE_SIZE, fp_am)!=NULL) {
         /* Define .entry labels */
         if(strstr(line, ".entry")!=NULL){
             label_name = strstr(line, ".entry") + strlen(".entry");
-            label_name = strtok(label_name, DELIMITER);
-            trim_whitespace(label_name);
-            curr = get_label(label_name ,st);
+            label_name = strtok_trimmed(label_name, DELIMITER);
+            curr = get_label(st, label_name);
+            /* If label name doesn't exist */
+            if (curr==NULL){
+                return;
+            }
             curr->is_entry = true;
             curr->is_code = false;
             curr->is_data = false;
@@ -69,32 +80,9 @@ void define_entry_and_extern(char *file_name, int error_state, FILE *fp_am, symb
 
 }
 
-int is_label(char *str, symbol_table *st) {
-    symbol_entry *curr = st->head;
-    while (curr != NULL) {
-        if (strcmp(curr->label, str) == 0) {
-            return true;
-        }
-        curr = curr->next;
-    }
-    return 0;
-}
-
-symbol_entry *get_label(char *str, symbol_table *st) {
-    symbol_entry *curr = st->head;
-    while (curr != NULL) {
-        if (strcmp(curr->label, str) == 0) {
-            return curr;
-        }
-        curr = curr->next;
-    }
-    return NULL;
-}
-
-
-/* Assume there is no errors in the line (check in the error handling function) */
+/* Assumes there is no syntax errors */
 void insert_label(char *file_name, int *error_state, int line_number, symbol_table *st, char *line, int *instruction_counter, int *data_counter) {
-    char copy_line[LINE_SIZE], *label_name;
+    char copy_line[LINE_SIZE], *label_name, *instruction;
     symbol_entry *new_entry = malloc(sizeof(symbol_entry));
 
     if (!new_entry) {
@@ -104,22 +92,37 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
     new_entry->is_extern = new_entry->is_data = new_entry->is_entry = new_entry->is_code = false;
 
     strcpy(copy_line, line);
-    label_name = strtok(copy_line, ":");
+    if (strchr(copy_line, ':')!=NULL) {
+        label_name = strtok(copy_line, ":");
+        instruction = strtok_trimmed(NULL, DELIMITER);
+    }else{
+        instruction = strtok_trimmed(copy_line, DELIMITER);
+    }
 
-    if(strstr(line, ".data")!=NULL){
+    /* No instruction */
+    if (instruction==NULL){
+        free(new_entry);
+        return;
+    }
+    if(strcmp(instruction, ".data")==TRUE || strcmp(instruction, ".string")==TRUE){
         new_entry->is_data=true;
         new_entry->address = *data_counter;
     }
-    else if(strstr(line, ".string")!=NULL){
-        new_entry->is_data = true;
-        new_entry->address = *data_counter;
-    }
-    else if(strstr(line, ".extern")!=NULL){
-        label_name = strstr(line, ".extern") + strlen(".extern");
-        trim_whitespace(label_name);
+    else if(strcmp(instruction, ".extern")==TRUE){
+        label_name = strtok_trimmed(NULL, DELIMITER);
+        /* Empty extern label */
+        if (label_name==NULL){
+            free(new_entry);
+            return;
+        }
         new_entry->is_extern = true;
     }
     else{
+        /* Check if the label is already exists */
+        if (is_label(st, label_name)){
+            error_msg(file_name, line_number, error_state, 1, "Label name already exists.");
+        }
+
         new_entry->is_code = true;
         new_entry->address = *instruction_counter;
     }
@@ -236,144 +239,6 @@ void correcting_data(symbol_table *st, int ic) {
             current->address += ic;
         }
         current = current->next;
-    }
-}
-
-void error_handling(char *file, char *line, int *error_state, int line_number, symbol_table *st){
-    char copy_line[LINE_SIZE], *label=NULL, *instruction, *param1, *param2, *ptr;
-    int i;
-
-    trim_whitespace(line); /* Trimming leading and trailing whitespaces */
-    strcpy(copy_line, line);
-
-    /** LABEL CHECK */
-    if(strchr(copy_line, ':')!=NULL){
-
-        /* Empty label name check*/
-        if(line[0]==':'){
-            error_msg(file, line_number, error_state,
-                      1, "Invalid label name, label name must contain at least one letter or number.");
-        }
-        label = strtok(copy_line, ":");
-        /* First letter check */
-        if(isalpha(label[0])==0){
-            error_msg(file, line_number, error_state, 1, "Label name must start with a letter.");
-        }
-        /* Letters and numbers inside the label name check */
-        for(i=0; i< strlen(label); i++) {
-            if(isalnum(label[i])==0){
-                error_msg(file, line_number, error_state,
-                          1, "Invalid label name, label name must contain only letters or numbers.");
-            }
-        }
-        /* Label name length check */
-        if(label!=NULL && strlen(label)>LABEL_SIZE){
-            error_msg(file, line_number, error_state,
-                      1, "Label name can not be longer than 30 characters.");
-        }
-        /* Old label name check */
-        if(is_label(label, st)){
-            error_msg(file, line_number, error_state,
-                      1, "Label name is already exists.");
-        }
-        /* Reserved system names check */
-        if(is_reserved(label)){
-            error_msg(file, line_number, error_state,
-                      1, "Label name can not be a reserved word in the system.");
-        }
-
-        instruction = strtok(NULL, DELIMITER);
-
-        /* Whitespace check after label name */
-        ptr = (strchr(line, ':')+1); /* points to the whitespace after instruction name */
-        if(*ptr!='\0' && isspace(*ptr)==0){
-            error_msg(file, line_number, error_state,
-                      1, "There should be whitespaces between the label name and instruction or directive.");
-        }
-    }
-    else{
-        /*  If a label name is not provided */
-        instruction = strtok(copy_line, DELIMITER);
-        trim_whitespace(instruction);
-    }
-
-
-
-    /** INSTRUCTION CHECK */
-    if(instruction==NULL){
-        error_msg(file, line_number, error_state, 1, "Missing instruction or directive.");
-    }
-    else if(instruction!=NULL && is_instruction(instruction)==0 && is_directive(instruction)==0){
-        error_msg(file, line_number, error_state,
-                  1, "Undefined instruction or directive.");
-    }
-    else if(strcmp(instruction, ".data")==0){
-        param1 = strtok(NULL, ",");
-        while(param1!=NULL){
-            trim_whitespace(param1);
-            /* First number char check for every number */
-            if(param1[0]!='-' && param1[0]!='+' && isdigit(param1[0])==0) {
-                error_msg(file, line_number, error_state,
-                          1, "Number can start only with '+' or '-' or a digit number.");
-            }
-            if(atoi(param1)>=8191 || atoi(param1)<(-8192)){
-                error_msg(file, line_number, error_state,
-                          3, "Invalid number \"", param1, "\" out of range.");
-            }
-            for(i=1; i< strlen(param1); i++){
-                if(isdigit(param1[i])==0){
-                    error_msg(file, line_number, error_state,
-                              3, "Invalid integer \"", param1,"\".");
-                }
-            }
-            param1 = strtok(NULL, ",");
-        }
-        if(isdigit(line[strlen(line)-1])==0){
-            error_msg(file, line_number, error_state,
-                      1, "Extraneous text after end of '.data' directive.");
-        }
-    }
-
-    else if(strcmp(instruction, ".string")==0){
-        param1 = strtok(NULL, "\n");
-        trim_whitespace(param1);
-        if(param1==NULL){
-            error_msg(file, line_number, error_state, 1, "Missing argument.");
-        }
-        if(param1!=NULL && (param1[0]!='\"' || param1[strlen(param1)-1]!='\"')){
-            error_msg(file, line_number, error_state,
-                      1, "Invalid string, must start and end with quotation marks.");
-        }
-    }
-
-    else if(strcmp(instruction, ".extern")==0){
-        if(label!=NULL){
-            warning_msg(file, line_number, 1,"Label name before '.extern' directive is meaningless.");
-        }
-        param1 = strtok(NULL, DELIMITER);
-        trim_whitespace(param1);
-        param2 = strtok(NULL, DELIMITER);
-        if(param2!=NULL){
-            error_msg(file, line_number, error_state,
-                      1,"Extraneous text after end of '.extern' directive.");
-        }
-    }
-
-    else if(strcmp(instruction, ".entry")==0){
-        if(label!=NULL){
-            warning_msg(file, line_number, 1,"Label name before '.entry' directive is meaningless.");
-        }
-        param1 = strtok(NULL, DELIMITER);
-        trim_whitespace(param1);
-        param2 = strtok(NULL, DELIMITER);
-        if(param2!=NULL){
-            error_msg(file, line_number, error_state,
-                      1,"Extraneous text after end of '.extern' directive.");
-        }
-    }
-
-    else if(strcmp(instruction, "jmp")==0 || strcmp(instruction, "bne")==0 || strcmp(instruction, "jsr")==0){
-
     }
 }
 

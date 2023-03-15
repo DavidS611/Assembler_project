@@ -8,13 +8,13 @@ CC = gcc
 CFLAGS = -g -Wall -ansi -pedantic
 
 # source files
-SRCS = main.c utils.c string_utils.c assembler.c preassembler.c first_pass.c second_pass.c
+SRCS = main.c utils.c assembler.c preassembler.c first_pass.c error_handling.c second_pass.c
 
 # object files
 OBJS = $(SRCS:.c=.o)
 
 # header files
-HEADERS = utils.h string_utils.h assembler.h preassembler.h first_pass.h second_pass.h
+HEADERS = utils.h assembler.h preassembler.h first_pass.h error_handling.h second_pass.h
 
 # command for deleting files
 RM = rm -f
@@ -32,3 +32,6 @@ $(TARGET): $(OBJS)
 
 clean:
 	$(RM) $(OBJS) $(TARGET) *.am *.ob *.ent *.ext
+	
+gdb:
+	gdb --args ./assembler $(a)

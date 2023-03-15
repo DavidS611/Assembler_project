@@ -1,24 +1,17 @@
-
 #ifndef MMN14_FIRST_PASS_H
 #define MMN14_FIRST_PASS_H
 
-#include "utils.h"
-#include "string_utils.h"
 #include "second_pass.h"
 
 word word_generator(int count, ...);
 
-void first_pass(char *file_name, FILE *fp_am);
+void first_pass(char *filename, FILE *fp_am);
 
-void define_entry_and_extern(char *file_name, int error_state, FILE *fp_am, symbol_table *st);
+void define_entry_labels(char *filename, int error_state, FILE *fp_am, symbol_table *st);
 
-void error_handling(char *file_name, char *line, int *error_state, int line_counter, symbol_table *st);
+void syntax_errors(char *filename, char *line, int *error_state, int line_counter, symbol_table *st);
 
 int increasement_line(char *line);
-
-int is_label(char *str, symbol_table *st);
-
-symbol_entry *get_label(char *str, symbol_table *st);
 
 void insert_label(char *file_name, int *error_state, int line_number, symbol_table *st, char *name, int *instruction_counter, int *data_counter);
 

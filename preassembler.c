@@ -26,7 +26,7 @@ void preassembler(char *as_filename, FILE *fp, FILE *fp_am){
             read_new_macro(as_filename, fp, &head, line);
         }
         else if(get_macro_data(head, line)==NULL){
-            /* Write the line to the output file if it is not part of a macro */
+            /* Write the line to the output file if it is not macro name */
             fprintf(fp_am, "%s\n", line);
         }
         else{
@@ -42,33 +42,32 @@ void preassembler(char *as_filename, FILE *fp, FILE *fp_am){
 void read_new_macro(char *as_filename, FILE *fp, macro **head, char macro_name[]) {
     char line[LINE_SIZE], line_copy[LINE_SIZE];
     char *data = NULL, *mcr_name, *extra_chars, *endmcr_token;
-    int num_lines_data = 1, flag_mcr = on;
+    int num_lines_data = 1, flag_mcr = true;
     macro *new_node;
 
     /* Create a new macro node */
     new_node = create_macro(as_filename);
+    if (new_node == NULL){
+        return;
+    }
 
     /* Parse the macro name from the input string */
-    mcr_name = strtok(macro_name, DELIMITER); /* should be 'mcr' because of the if condition on preassembler.c */
-    mcr_name = strtok(NULL, DELIMITER); /* macro name */
+    mcr_name = strtok_trimmed(macro_name, DELIMITER); /* should be 'mcr' because of the if condition on preassembler.c */
+    mcr_name =  strtok_trimmed(NULL, DELIMITER); /* macro name */
 
     /* Check if the macro name is empty. If it is, print an error message and returns. */
     if(mcr_name == NULL){
         error_msg(as_filename, NO_ARGUMENT, NO_ARGUMENT,
                   1, "Invalid macro name, macro name must contain at least one character.");
-        return;
     }
     /* Checks if the macro name is a reserved name of the system, and if so, prints an error message and returns. */
     if(is_reserved(mcr_name)){
         error_msg(as_filename, NO_ARGUMENT, NO_ARGUMENT,
-                  3,"Macro name is a reserved name of the system \"", mcr_name, "\"");
-        return;
+                  3,"Macro name is a reserved name of the system \'", mcr_name, "\'");
     }
     /* Check if the macro name is already exists. if so print an error message. */
     if(check_macro_name(mcr_name, *head)){
-        error_msg(as_filename, NO_ARGUMENT, NO_ARGUMENT,
-                  3,"Macro name already exists: \"", mcr_name, "\".");
-
+        error_msg(as_filename, NO_ARGUMENT, NO_ARGUMENT,3,"Macro name already exists: \'", mcr_name, "\'.");
     }
 
     trim_whitespace(mcr_name); /* trim leading and trailing whitespaces from macro name */
@@ -98,32 +97,35 @@ void read_new_macro(char *as_filename, FILE *fp, macro **head, char macro_name[]
             if (data == NULL) {
                 error_msg(as_filename, NO_ARGUMENT, NO_ARGUMENT, 3,
                           "Failed to allocate memory for macro data of macro name \"", mcr_name, "\"");
-                exit(EXIT_FAILURE);
             }
 
-            /* If this is the first line of the macro's data, initialize the data with this line and add a new line to the end.
-             * Otherwise, append the new macro's data to the existing data and add a new line to it. */
-            if(num_lines_data==2) { /* Check if it is the first macro's data line */
-                strcpy(data, line);
-                strcat(data, "\n");
+            if(num_lines_data==2) { /* Check if it is the first line of macro's data */
+                strcpy(data, line); /* Copy the first line of data */
+                strcat(data, "\n"); /* Add a new line to the end of the data */
             } else{
-                /* Append the line to the existing data and add a new line to it */
+                /* Append the new line of data to the existing data and add a new line to it */
                 strcat(data, line);
                 strcat(data, "\n");
             }
         }
         /* Encountered endmcr token, in other words endmcr_token equal to 'endmcr' string */
         else {
-            data[num_lines_data * LINE_SIZE - 1] = '\0'; /* Add null character to end of data string */
-            new_node->data = _strdup(as_filename, data); /* Allocate memory for the new node's data and copy the macro's data to it */
-            flag_mcr = off; /* Set flag to exit the loop */
+            /* If the macro has no data, allocate an empty string to the data field. */
+            if (num_lines_data==1){
+                new_node->data = _strdup(as_filename, "");
+            }
+            else{
+                data[num_lines_data * LINE_SIZE - 1] = '\0'; /* Add null character to end of data string */
+                new_node->data = _strdup(as_filename, data); /* Allocate memory for the new node's data and copy the macro's data to it */
+            }
+            flag_mcr = false; /* Set flag to exit the loop */
 
             /* Check for extra chars after endmcr token, and if there is print an error */
             extra_chars = strtok(NULL, DELIMITER);
             if(extra_chars!=NULL){
                 /* error unwanted chars after 'endmcr' excluding whitespaces*/
                 error_msg(as_filename, NO_ARGUMENT, NO_ARGUMENT,
-                          3, "Found extra chars after \'endmcr\' token for macro name \"", mcr_name, "\".");
+                          3, "Found extra chars after \'endmcr\' token of macro name \"", mcr_name, "\".");
             }
         }
     }
@@ -137,11 +139,10 @@ void read_new_macro(char *as_filename, FILE *fp, macro **head, char macro_name[]
 macro* create_macro(char *as_filename) {
     macro *new_node = (macro *) malloc(sizeof(macro));
 
-    /* Check if memory allocation for a new node failed. If so, print an error message, and exit the program. */
+    /* Check if memory allocation for a new node failed. If so, print an error message, and return null. */
     if (new_node == NULL) {
-        error_msg(as_filename, NO_ARGUMENT, NO_ARGUMENT,
-                  1, "Failed to allocate memory for new macro.");
-        exit(EXIT_FAILURE);
+        error_msg(as_filename, NO_ARGUMENT, NO_ARGUMENT,1, "Failed to allocate memory for new macro.");
+        return NULL;
     }
     return new_node;
 }
@@ -161,11 +162,12 @@ char *get_macro_data(macro *head, char name[]) {
 }
 
 void free_macro(macro **head_ptr) {
+    macro *next; /* Save the next pointer of the macro struct */
     macro *current = *head_ptr;
     while (current != NULL) {
-        macro *next = current->next;
-        free(current->name); /* Free the memory allocated for macro's name */
-        free(current->data); /* Free the memory allocated for macro's data */
+        next= current->next;
+        free(current->name);
+        free(current->data);
         free(current);  /* Free the memory allocated for the macro struct itself */
         current = next;
     }
@@ -177,22 +179,21 @@ void macro_print(macro *head) {
     current = head;
     while (current != NULL) {
         /* print the name of the macro */
-        printf("Macro name: \n%s\n", current->name);
+        printf("\nMacro name: %s\n", current->name);
         /* print the characters of the macro */
         printf("Macro characters:\n");
         printf("%s", current->data);
-
         current = current->next;
     }
 }
 
-int check_macro_name(char *mcr_name, macro *head){
+bool check_macro_name(char *mcr_name, macro *head){
     macro *curr=head;
 
     while(curr!=NULL){
         if(strcmp(curr->name, mcr_name)==0)
-            return ERROR;
+            return true;
         curr = curr->next;
     }
-    return NO_ERROR;
+    return false;
 }

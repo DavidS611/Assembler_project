@@ -1,7 +1,7 @@
 #include "second_pass.h"
 
 void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) {
-    char line[LINE_SIZE], *ptr, *instruction, *operand1, *operand2, *parameter1, *parameter2;
+    char line[LINE_SIZE], *ptr, *instruction, *operand1, *operand2, *parameter1, *parameter2, registers[5];
     word binary_machine_code;
     hash_map map = create_hash_map();
     int i, map_counter=START_MEMORY;
@@ -25,14 +25,16 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
             /* If both operands are registers only one new word */
             if(is_register(operand1) && is_register(operand2)){
                 binary_machine_code = (register_to_word(operand1)<<R6_SHIFT) | (register_to_word(operand2)<<R7_SHIFT);
-                insert(&map, map_counter++, strcat(strcat(operand1, ","), operand2), binary_machine_code);
+                /* Copying into registers array, operand1 (ri) with comma and operand2 (rj) | i and j is numbers between 0 and 7 */
+                strcpy(registers, operand1), strcat(registers, ","), strcat(registers, operand2); /* registers = "ri,rj"*/
+                insert(&map, map_counter++, registers, binary_machine_code);
             }
             else {
                 /* Source address */
                 if (is_register(operand1)){
                     binary_machine_code = (register_to_word(operand1)<<R6_SHIFT);
                 }
-                else if(is_label(operand1, st)){
+                else if(is_label(st, operand1)){
                     binary_machine_code = label_to_word(st, operand1);
                 }
                 else{
@@ -44,7 +46,7 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
                 if (is_register(operand2)){
                     binary_machine_code = register_to_word(operand2);
                 }
-                else if(is_label(operand2, st)){
+                else if(is_label(st, operand2)){
                     binary_machine_code = label_to_word(st, operand2);
                 }
                 insert(&map, map_counter++, operand2, binary_machine_code);
@@ -70,14 +72,16 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
                 /* First and Second parameters */
                 if (is_register(parameter1) && is_register(parameter2)){
                     binary_machine_code = (register_to_word(parameter1)<<R6_SHIFT) | (register_to_word(parameter2)<<R7_SHIFT);
-                    insert(&map, map_counter++, strcat(strcat(parameter2,","), parameter1), binary_machine_code);
+                    /* Copying into registers array, parameter1 (ri) with comma and parameter2 (rj) | i and j is numbers between 0 and 7 */
+                    strcpy(registers, operand1), strcat(registers, ","), strcat(registers, operand2); /* registers = "ri,rj"*/
+                    insert(&map, map_counter++, registers, binary_machine_code);
                 }
                 else {
                     /* First parameter */
                     if (is_register(parameter1)){
                         binary_machine_code = register_to_word(parameter1)<<PARAM_1_SIZE_SHIFT;
                     }
-                    else if(is_label(parameter1, st)){
+                    else if(is_label(st, parameter1)){
                         binary_machine_code = label_to_word(st, parameter1);
                     }
                     else{
@@ -89,7 +93,7 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
                     if (is_register(parameter2)){
                         binary_machine_code = register_to_word(parameter2)<<ARE_SHIFT;
                     }
-                    else if(is_label(parameter2, st)){
+                    else if(is_label(st, parameter2)){
                         binary_machine_code = label_to_word(st, parameter2);
                     }
                     else{
@@ -212,7 +216,7 @@ void entry_file_generate(char *filename, symbol_table *st, FILE *fp_am){
         if((entry_label = strstr(line, ".entry"))!=NULL){
             entry_label += strlen(".entry"); /* entry_label points after '.entry' directive */
             trim_whitespace(entry_label); /* Trimming leading and trailing whitespaces */
-            se = get_label(entry_label, st);
+            se = get_label(st, entry_label);
             if (se != NULL){
                 fprintf(fp_ent, "%s\t%d\n", entry_label, se->address);
                 numb_of_entries++;
@@ -326,7 +330,7 @@ word label_to_word(symbol_table *st, char *label_name){
     int decimal_address;
     symbol_entry *label_entry;
 
-    label_entry = get_label(label_name, st);
+    label_entry = get_label(st, label_name);
     if (label_entry->is_extern==true){
         return EXTERNAL;
     }
@@ -339,7 +343,7 @@ word num_label_register(symbol_table *st, char *str){
     if (is_register(str)){
         return REG_ADDR;
     }
-    if (is_label(str, st)){
+    if (is_label(st, str)){
         return DIRECT_ADDR;
     }
     /* For number */

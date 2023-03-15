@@ -1,0 +1,3 @@
+/home/david/Documents/תואר/C language/mmn14/cmake-build-debug/CMakeFiles/_mmn14.dir
+/home/david/Documents/תואר/C language/mmn14/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/david/Documents/תואר/C language/mmn14/cmake-build-debug/CMakeFiles/rebuild_cache.dir
