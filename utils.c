@@ -255,6 +255,8 @@ bool is_reserved(const char *str){
 
 bool is_label(symbol_table *st, char *str) {
     symbol_entry *curr = st->head;
+    if (str==NULL)
+        return false;
     while (curr != NULL) {
         if (strcmp(curr->label, str) == 0) {
             return true;
@@ -270,15 +272,12 @@ bool is_num(char *str_num){
     if (str_num[0]!='#')
         return false;
     ptr = str_num+1;
-    if (str_num[1]!='+'&& str_num[1]!='-' && isdigit(str_num[1])==false)
+    if (*ptr!='+'&& *ptr!='-' && isdigit(*ptr)==false)
         return false;
     ptr++;
     /* Checks whether there is a digit after '+' or '-' */
-    if (isdigit(ptr[0])==false){
-        return false;
-    }
     for (i=0; i< strlen(ptr); i++){
-        if (isdigit(ptr[i])==false)
+        if (isdigit(*ptr)==false)
             return false;
     }
     return true;
@@ -286,6 +285,8 @@ bool is_num(char *str_num){
 
 symbol_entry *get_label(symbol_table *st, char *str) {
     symbol_entry *curr = st->head;
+    if (str==NULL)
+        return NULL;
     while (curr != NULL) {
         if (strcmp(curr->label, str) == 0) {
             return curr;

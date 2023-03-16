@@ -1,4 +1,4 @@
-MAIN:   mov r3,LENGTH  ;123	
+MAIN:   mov r3,LENGTH  ;123
 LOOP:   jmp L1(#-1,r6)
 
 			;
@@ -13,7 +13,7 @@ LOOP:   jmp L1(#-1,r6)
         m1
 L1:     inc K
         bne LOOP(K,STR)
-        mcr m1
+        mcr m2
                 add r7,r1
                 sub r6,r4
         endmcr

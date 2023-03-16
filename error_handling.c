@@ -62,8 +62,12 @@ void data_check(char *file, int *error_state, int line_number ,char *line){
     /* Loop through each number */
     while(param1!=NULL){
         trim_whitespace(param1);
+        /* Extra comma at the end of the line check */
+        if (strcmp(param1, "")==0){
+            error_msg(file, line_number, error_state, 1, "Comma at the end of .data directive.");
+        }
         /* First number char check for each number provided */
-        if(param1[0]!='-' && param1[0]!='+' && isdigit(param1[0])==0) {
+        else if(param1[0]!='-' && param1[0]!='+' && isdigit(param1[0])==0) {
             error_msg(file, line_number, error_state,
                       1, "Number can start only with '+' or '-' or a digit number.");
         }
@@ -74,9 +78,13 @@ void data_check(char *file, int *error_state, int line_number ,char *line){
         }
         /* Check if one of the chars isn't a digit */
         for(i=0; i< strlen(param1); i++){
-            if(isdigit(param1[i])==0 && param1[0]!='-' && param1[0]!='+'){
+            if(isdigit(param1[0])==0 && param1[0]!='-' && param1[0]!='+'){
                 error_msg(file, line_number, error_state,3, "Invalid integer: \'", param1,"\'.");
-                i = strlen(param1); /* exit for loop */
+                i = strlen(param1); /* exit loop */
+            }
+            else if(i!=0 && isdigit(param1[i])==0){
+                error_msg(file, line_number, error_state,3, "Invalid integer: \'", param1,"\'.");
+                i = strlen(param1); /* exit loop */
             }
         }
         param1 = strtok(NULL, ",");
@@ -95,7 +103,7 @@ void data_check(char *file, int *error_state, int line_number ,char *line){
 
 }
 
-void string_check(char *file, int line_number, int *error_state, char *line){
+void string_check(char *file, int line_number, int *error_state, char *line) {
     char *param1;
 
     /* Pointer to '.string' directive string */
@@ -104,13 +112,19 @@ void string_check(char *file, int line_number, int *error_state, char *line){
     param1 = strtok_trimmed(NULL, NEW_LINE);
 
     /* No string check */
-    if(param1==NULL){
+    if (param1 == NULL) {
         error_msg(file, line_number, error_state, 1, "Missing string after '.string' directive.");
     }
     /* param1 contains the string with quotation marks (e.g., param1="abcdef") */
-    if(param1!=NULL && (param1[0]!='\"' || param1[strlen(param1)-1]!='\"')){
-        error_msg(file, line_number, error_state,
-                  1, "Invalid string, must start and end with quotation marks.");
+    else {
+        if (strlen(param1)<2){
+            error_msg(file, line_number, error_state, 1, "Missing quotation marks.");
+        }
+        else{
+            if (param1[0]!='\"' || param1[strlen(param1)-1]!='\"'){
+                error_msg(file, line_number, error_state, 1, "The string must start and end with quotation marks.");
+            }
+        }
     }
 }
 
@@ -164,12 +178,15 @@ void entry_check(char *file, int line_number, int *error_state, symbol_table *st
         warning_msg(file, line_number, 1,"Label name before '.entry' directive is meaningless.");
     }
     entry_label = strtok_trimmed(NULL, DELIMITER); /* The entry label name */
+    if (entry_label==NULL){
+        error_msg(file, line_number, error_state, 1, "Missing argument.");
+    }
     /* Reserved name check */
-    if (is_reserved(entry_label)){
+    else if (is_reserved(entry_label)){
         error_msg(file, line_number, error_state, 1, "Reserved system name can not be entry.");
     }
     /* Exists label check */
-    if (is_label(st, entry_label)==false){
+    else if (is_label(st, entry_label)==false){
         error_msg(file, line_number, error_state, 1, "Label name doesn't exists.");
     }
 
@@ -186,33 +203,40 @@ void first_group_check(char *file, int line_number, int *error_state, symbol_tab
 
     instruction = strtok_trimmed(line, DELIMITER);
     operand1 = strtok_trimmed(NULL, COMMA);
-    operand2 = strtok_trimmed(NULL, DELIMITER);
 
-    if (operand1==NULL || operand2 == NULL){
+    if (operand1==NULL){
         error_msg(file, line_number, error_state, 1, "Missing argument.");
     }
-    else {
+    else{
         /* Source operand is register or a number and instruction is 'lea' */
         if ((is_register(operand1) || is_num(operand1)) && strcmp(instruction, "lea")==TRUE) {
-            error_msg(file, line_number, error_state,1, "The 'lea' instruction can only use labels as source operands.");
+            error_msg(file, line_number, error_state,1, "For 'lea' instruction source operand must be label.");
         }
-        /* Destination operand is a number and instruction isn't 'cmp' */
-        if (is_num(operand2) && strcmp(instruction, "cmp")) {
-            error_msg(file, line_number, error_state,1, "Invalid operand type, first group instructions can only get number as destination only for 'cmp' instruction.");
-        }
-
-        /* Invalid source & destination operand check */
+        /* Invalid source operand check */
         if (is_num(operand1)==false && is_label(st, operand1)==false && is_register(operand1)==false){
             error_msg(file, line_number, error_state, 1, "Invalid Source operand.");
-        }
-        if (is_num(operand2)==false && is_label(st, operand2)==false && is_register(operand2)==false){
-            error_msg(file, line_number, error_state, 1, "Invalid Destination operand.");
         }
         if (is_instruction(operand1) || is_directive(operand1)){
             error_msg(file, line_number, error_state, 1, "Source operand can't be reserved system name.");
         }
-        if (is_instruction(operand2) || is_directive(operand2)){
-            error_msg(file, line_number, error_state, 1, "Destination operand can't be reserved system name.");
+
+        operand2 = strtok_trimmed(NULL, DELIMITER);
+
+        if (operand2==NULL){
+            error_msg(file, line_number, error_state, 1, "Missing argument.");
+        }
+        else{
+            /* Destination operand is a number and instruction isn't 'cmp' */
+            if (is_num(operand2) && strcmp(instruction, "cmp")) {
+                error_msg(file, line_number, error_state,1, "Invalid destination operand.");
+            }
+            /* Invalid destination operand check */
+            if (is_num(operand2)==false && is_label(st, operand2)==false && is_register(operand2)==false){
+                error_msg(file, line_number, error_state, 1, "Invalid Destination operand.");
+            }
+            if (is_instruction(operand2) || is_directive(operand2)){
+                error_msg(file, line_number, error_state, 1, "Destination operand can't be reserved system name.");
+            }
         }
     }
 
@@ -226,10 +250,9 @@ void first_group_check(char *file, int line_number, int *error_state, symbol_tab
 void second_group_check(char *file, int line_number, int *error_state, symbol_table *st, char *line){
     char *instruction, *operand2, *param1, *param2, *extra_chars;
 
-    instruction = strtok_trimmed(line, DELIMITER);
-
     /* Addressing method number 2 ('10')*/
     if (strchr(line, '(')!=NULL){
+        instruction = strtok_trimmed(line, DELIMITER);
         /* Correct instruction for addressing method check */
         if (strcmp(instruction, "jmp")==false && strcmp(instruction, "bne")==false && strcmp(instruction, "jsr")==false){
             error_msg(file, line_number, error_state, 1, "Invalid instruction for addressing method number 2.");
@@ -247,7 +270,10 @@ void second_group_check(char *file, int line_number, int *error_state, symbol_ta
 
         /* Destination operand label check */
         operand2 = strtok(operand2, "(");
-        if (is_label(st, operand2)==false){
+        if (is_reserved(operand2)==true){
+            error_msg(file, line_number, error_state, 1, "Destination operand can not be reserved system name.");
+        }
+        else if (is_label(st, operand2)==false){
             error_msg(file, line_number, error_state, 3, "Invalid Destination operand, the label \'", operand2, "\' is not defined.");
         }
         if (is_instruction(operand2) || is_directive(operand2)){
@@ -274,7 +300,7 @@ void second_group_check(char *file, int line_number, int *error_state, symbol_ta
             }
             else {
                 if (is_num(param2)==false && is_label(st, param2)==false && is_register(param2)==false){
-                    error_msg(file, line_number, error_state, 1, "Invalid Second parameter.");
+                    error_msg(file, line_number, error_state, 1, "Invalid second parameter.");
                 }
                 if (is_instruction(param2) || is_directive(param2)){
                     error_msg(file, line_number, error_state, 1, "Second parameter can't be reserved system name.");
@@ -289,6 +315,7 @@ void second_group_check(char *file, int line_number, int *error_state, symbol_ta
         }
     }
     else {
+        instruction = strtok_trimmed(line, DELIMITER);
         operand2 = strtok_trimmed(NULL, DELIMITER);
         if (operand2==NULL){
             error_msg(file, line_number, error_state, 1, "Missing argument.");
@@ -297,7 +324,7 @@ void second_group_check(char *file, int line_number, int *error_state, symbol_ta
             /* Invalid destination operand check */
             /* Checks that the dest operand isn't a label and not a register.
              * For the 'prn' instruction, check that the dest operand isn't number. */
-            if (is_label(st, operand2)==false && is_register(operand2)==false && (is_num(operand2)==false && strcmp(instruction, "prn")==0)){
+            if (is_label(st, operand2)==false && is_register(operand2)==false && !(is_num(operand2) && strcmp(instruction, "prn")==0)){
                 error_msg(file, line_number, error_state, 1, "Invalid destination operand.");
             }
             /* Reserved system name check */

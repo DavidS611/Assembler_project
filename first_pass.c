@@ -35,7 +35,7 @@ void first_pass(char *file_name, FILE *fp_am){
         syntax_errors(file_am, line, &error_state, line_number++, st);
     }
 
-    print_symbol_table(st);
+    /*print_symbol_table(st);*/
     /* If error was found don't continue to the second pass */
     if(error_state){
         free(file_am);

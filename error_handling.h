@@ -1,5 +1,5 @@
-#ifndef _MMN14_ERROR_HANDLING_H
-#define _MMN14_ERROR_HANDLING_H
+#ifndef MMN14_ERROR_HANDLING_H
+#define MMN14_ERROR_HANDLING_H
 
 #include "utils.h"
 
@@ -13,7 +13,7 @@
 void label_check(char *file, int *error_state, int line_number, char *line);
 
 /**
- * Checks if the .data directive is used correctly.
+ * Checks if the .data directive statement is used correctly.
  * @param file The current file being checked.
  * @param error_state A pointer to an integer that holds the current error state.
  * @param line_number The current line number being checked.
@@ -22,7 +22,7 @@ void label_check(char *file, int *error_state, int line_number, char *line);
 void data_check(char *file, int *error_state, int line_number ,char *line);
 
 /**
- * Checks if the .string directive is used correctly.
+ * Checks if the .string directive statement is used correctly.
  * @param file The current file being checked.
  * @param line_number The current line number being checked.
  * @param error_state A pointer to an integer that holds the current error state.
@@ -30,5 +30,43 @@ void data_check(char *file, int *error_state, int line_number ,char *line);
 */
 void string_check(char *file, int line_number, int *error_state, char *line);
 
+/**
+ * Checks if the .extern directive statement is used correctly.
+ * @param file The current file being checked.
+ * @param line_number The current line number being checked.
+ * @param error_state A pointer to an integer that holds the current error state.
+ * @param line The current line being checked.
+ */
+void extern_check(char *file, int line_number, int *error_state, char *line);
 
-#endif /*_MMN14_ERROR_HANDLING_H */
+/**
+ * Checks if the .entry directive statement is used correctly.
+ * @param file The current file being checked.
+ * @param line_number The current line number being checked.
+ * @param error_state A pointer to an integer that holds the current error state.
+ * @param st A pointer to the symbol table.
+ * @param line The current line being checked.
+*/
+void entry_check(char *file, int line_number, int *error_state, symbol_table *st, char *line);
+
+/**
+ * Checks if the first group of instructions ("mov", "cmp", "add", "sub", "lea") statement is used correctly.
+ * @param file The current file being checked.
+ * @param line_number The current line number being checked.
+ * @param error_state A pointer to an integer that holds the current error state.
+ * @param st A pointer to the symbol table.
+ * @param line The current line being checked.
+ */
+void first_group_check(char *file, int line_number, int *error_state, symbol_table *st, char *line);
+
+/**
+ * Checks if the second group of instructions ("not","clr","inc", "dec","jmp","bne", "red", "prn","jsr") statement is used correctly.
+ * @param file - The current file being checked.
+ * @param line_number - The current line number being checked.
+ * @param error_state - A pointer to an integer that holds the current error state.
+ * @param st - A pointer to the symbol table.
+ * @param line - The current line being checked.
+ */
+void second_group_check(char *file, int line_number, int *error_state, symbol_table *st, char *line);
+
+#endif /* MMN14_ERROR_HANDLING_H */
