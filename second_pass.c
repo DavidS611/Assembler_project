@@ -242,7 +242,7 @@ void object_file_generate(char *filename, hash_map map, symbol_table *st, FILE *
     /* Creating object file */
     generate_filename(filename, ".ob", &ob_file);
     fp_ob = open_file(ob_file, "w");
-    fprintf(fp_ob, "\t\t%d %d\n", ic-START_MEMORY, dc);
+    fprintf(fp_ob, "\t%d %d\n", ic-START_MEMORY, dc);
 
     for(i=START_MEMORY; i<map_lines; i++){
         binary = get_binary_code_for_decimal_address(&map, i);
