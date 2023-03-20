@@ -48,7 +48,7 @@ void assembler(int number_of_arg, char *file[]){
         first_pass(file[i], fp_am);
 
         /* Deleting the expanded macro file */
-        delete_file(expanded_macro_file, NULL);
+        /*delete_file(expanded_macro_file, NULL);*/
 
         i++; /* Continue to the next file */
 

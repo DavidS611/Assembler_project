@@ -4,19 +4,17 @@
 #define MMN14_UTILS_H
 
 #include <stdio.h>
-#include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include "structures.h"
 
 #define LINE_SIZE 81 /* Maximum line length in source file is 80 characters (excluding \n). */
 #define START_MEMORY 100 /* Assuming code starts at address 100 */
-#define LABEL_SIZE 31 /* Maximum label name length with null terminator */
-#define HASH_MAP_SIZE 256  /* Maximum 256 words in the system */
 
 #define ERROR_MSG "\x1b[31mERROR:\x1b[0m "
-#define WARNING "\x1b[35mWARNING:\x1b[0m "
-#define LINE "\x1b[34mLINE\x1b[0m  "
+#define WARNING_MSG "\x1b[35mWARNING:\x1b[0m "
+#define LINE_MSG "\x1b[34mLINE\x1b[0m  "
 #define BLUE "\033[1;34m"
 #define WHITE "\033[0m"
 #define DELIMITER "\n \t"
@@ -26,54 +24,45 @@
 
 
 enum err{ERROR = -1, NO_ERROR = 0};
-typedef enum boolean {TRUE=0, false = 0, true = 1, FALSE=1} bool;
 
-typedef struct mcr_node {
-    char *name;
-    char *data;
-    struct mcr_node *next;
-} macro;
-
-typedef unsigned short word;
-
-/* symbol entry struct*/
-typedef struct symbol_entry {
-    char* label;
-    int address; /* decimal address */
-    bool is_code;
-    bool is_data;
-    bool is_extern;
-    bool is_entry;
-    struct symbol_entry* next;
-} symbol_entry;
-
-/* symbol table struct*/
-typedef struct symbol_table {
-    symbol_entry* head;
-} symbol_table;
-
-typedef struct hash_node {
-    int decimal_address;
-    char code[LABEL_SIZE];
-    word binary_address;
-} hash_node;
-
-typedef struct hash_map {
-    hash_node nodes[HASH_MAP_SIZE];
-} hash_map;
-
+/**
+ * Opens a file with the given filename and mode.
+ * @param filename - The name of the file to open.
+ * @param mode - The mode to open the file in (e.g. "r" for read mode).
+ * @return Returns a pointer to the opened file.
+ * @remark If the file fails to open, error message is printed.
+ */
 FILE* open_file(char* filename, const char* mode);
 
+/**
+ * Generates a new file name by appending the given suffix to the end of the original file name.
+ * @param filename - The original file name.
+ * @param suffix - The suffix to append to the end of the file name.
+ * @param new_filename - A pointer to the location where the new file name will be stored.
+ */
 void generate_filename(char *filename, char *suffix, char **new_filename);
 
-int search_string_in_file(FILE *fp, const char *string);
-
+/**
+ * Closes a variable number of file pointers passed in as arguments.
+ * @param count - The number of file pointers to close.
+ * @param ... - A variable number of file pointers to close.
+ */
 void close_files(int count, ...);
 
+/**
+ * Deletes a file with the given name, optionally with a specified suffix.
+ * If the file fails to delete, an error message is printed and the program continues.
+ * @param file_name - The name of the file to delete.
+ * @param suffix - An optional suffix to append to the file name before deleting it.
+ */
 void delete_file(char *file_name, char *suffix);
 
+/**
+ * Frees a variable number of memory pointers passed in as arguments.
+ * @param count - The number of pointers to free.
+ * @param ... - A variable number of pointers to free.
+ */
 void free_pointers(int count, ...);
-
 
 /**
  * Checks if a line of text is empty or comment or contains only whitespaces.
@@ -181,7 +170,7 @@ bool is_num(char *str_num);
  * @param str - The label name to search for.
  * @return Returns a pointer to the symbol_entry for the matching label if found, otherwise returns NULL.
  */
-symbol_entry *get_label(symbol_table *st, char *str);
+symbol_entry *lookup_label(symbol_table *st, char *str);
 
 /**
  * Prints an error message to standard output and updates the error state.

@@ -22,7 +22,6 @@ void generate_filename(char *filename, char *suffix, char **new_filename) {
     *new_filename = temp_filename;
 }
 
-
 void delete_file(char *file_name, char *suffix) {
     char file_to_delete[FILENAME_MAX];
 
@@ -39,8 +38,6 @@ void delete_file(char *file_name, char *suffix) {
     }
 }
 
-/* This function takes an integer count followed by any number of file pointers
-   and closes each of them if they are not null. */
 void close_files(int count, ...) {
     va_list args;
     int i;
@@ -61,8 +58,6 @@ void close_files(int count, ...) {
     va_end(args); /* Clean up the argument list. */
 }
 
-
-/* Frees number of pointers */
 void free_pointers(int count, ...) {
     int i;
     va_list args;
@@ -254,14 +249,14 @@ bool is_reserved(const char *str){
 }
 
 bool is_label(symbol_table *st, char *str) {
-    symbol_entry *curr = st->head;
+    symbol_entry *curr = get_head(st);
     if (str==NULL)
         return false;
     while (curr != NULL) {
-        if (strcmp(curr->label, str) == 0) {
+        if (strcmp(get_label(curr), str) == 0) {
             return true;
         }
-        curr = curr->next;
+        curr = get_next(curr);
     }
     return false;
 }
@@ -283,18 +278,19 @@ bool is_num(char *str_num){
     return true;
 }
 
-symbol_entry *get_label(symbol_table *st, char *str) {
-    symbol_entry *curr = st->head;
-    if (str==NULL)
+symbol_entry *lookup_label(symbol_table *st, char *str) {
+    symbol_entry *curr = get_head(st);
+    if (str == NULL)
         return NULL;
     while (curr != NULL) {
-        if (strcmp(curr->label, str) == 0) {
+        if (strcmp(get_label(curr), str) == 0) {
             return curr;
         }
-        curr = curr->next;
+        curr = get_next(curr);
     }
     return NULL;
 }
+
 
 void error_msg(char* filename, const int line_number, int* error_state, int count, ...) {
     int i;
@@ -306,7 +302,7 @@ void error_msg(char* filename, const int line_number, int* error_state, int coun
         fprintf(stdout, BLUE"%s: "WHITE, filename);
     }
     if (line_number != 0) {
-        fprintf(stdout, LINE "%d: ", line_number);
+        fprintf(stdout, LINE_MSG "%d: ", line_number);
     }
     for (i = 0; i < count; i++) {
         char* arg = va_arg(args, char*);
@@ -326,12 +322,12 @@ void warning_msg(char* filename, int line_number, int count, ...){
     va_list args;
     va_start(args, count);
 
-    fprintf(stdout, WARNING );
+    fprintf(stdout, WARNING_MSG );
     if(filename!=NULL) {
         fprintf(stdout, BLUE"%s: "WHITE, filename);
     }
     if (line_number != 0) {
-        fprintf(stdout, LINE "%d: ", line_number);
+        fprintf(stdout, LINE_MSG "%d: ", line_number);
     }
     for (i = 0; i < count; i++) {
         char* arg = va_arg(args, char*);

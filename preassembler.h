@@ -34,7 +34,7 @@ macro* create_macro(char *as_filename);
  * @param name - The name of the macro to retrieve data for.
  * @return - Returns a pointer to the macro data if found, NULL otherwise.
  */
-char *get_macro_data(macro *head, char name[]);
+char *get_macros_data(macro *head, char name[]);
 
 /**
  * Frees the memory allocated for a linked list of macro structs.

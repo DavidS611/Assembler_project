@@ -160,7 +160,7 @@ void second_pass(char *filename, symbol_table *st, FILE *fp_am, int ic, int dc) 
     print_all_addresses(&map, map_counter);
 
     /* Generate object file */
-    object_file_generate(filename, map, st, fp_am, ic, dc);
+    object_file_generate(filename, map, ic, dc);
     /* Generate entry file (if required) */
     entry_file_generate(filename, st, fp_am);
     /* Generate extern file (if required) */
@@ -171,7 +171,7 @@ void extern_file_generate(char *filename, symbol_table *st, hash_map map, int ma
     FILE *fp_ext;
     char *ext_file;
     int numb_of_externs = 0, i;
-    symbol_entry *se=st->head;
+    symbol_entry *se= get_head(st);
 
     /* Creating extern file */
     generate_filename(filename, ".ext", &ext_file);
@@ -179,15 +179,15 @@ void extern_file_generate(char *filename, symbol_table *st, hash_map map, int ma
 
     /* Looking for extern & deriving label name from symbol table */
     for (i=START_MEMORY; i<map_counter; i++){
-        if (map.nodes[i].binary_address == EXTERNAL) {
+        if (get_binary_address(get_hash_node(&map, i)) == EXTERNAL) {
             while (se!=NULL) {
-                if (strcmp(se->label,map.nodes[i].code) == 0) {
-                    fprintf(fp_ext,"%s\t%d\n", se->label, map.nodes[i].decimal_address);
+                if (strcmp(get_label(se),get_code(get_hash_node(&map, i))) == 0) {
+                    fprintf(fp_ext,"%s\t%d\n", get_label(se), get_decimal_address(get_hash_node(&map, i)));
                     numb_of_externs++;
                 }
-                se = se->next;
+                se = get_next(se);
             }
-            se=st->head;
+            se=get_head(st);
         }
     }
 
@@ -216,9 +216,9 @@ void entry_file_generate(char *filename, symbol_table *st, FILE *fp_am){
         if((entry_label = strstr(line, ".entry"))!=NULL){
             entry_label += strlen(".entry"); /* entry_label points after '.entry' directive */
             trim_whitespace(entry_label); /* Trimming leading and trailing whitespaces */
-            se = get_label(st, entry_label);
+            se = lookup_label(st, entry_label);
             if (se != NULL){
-                fprintf(fp_ent, "%s\t%d\n", entry_label, se->address);
+                fprintf(fp_ent, "%s\t%d\n", entry_label, get_address(se));
                 numb_of_entries++;
             }
         }
@@ -233,7 +233,7 @@ void entry_file_generate(char *filename, symbol_table *st, FILE *fp_am){
     fclose(fp_ent);
 }
 
-void object_file_generate(char *filename, hash_map map, symbol_table *st, FILE *fp_am, int ic, int dc){
+void object_file_generate(char *filename, hash_map map, int ic, int dc){
     FILE *fp_ob;
     char *ob_file, *speical;
     int map_lines = ic+dc, i;
@@ -257,7 +257,7 @@ void object_file_generate(char *filename, hash_map map, symbol_table *st, FILE *
 
 char *binary_to_special(word binary_address){
     char special[BITS_PER_WORD+1]; /* +1 for Null terminator */
-    unsigned int mask = 1 << (BITS_PER_WORD-1); /* initialize mask to the most significant bit */
+    word mask = 1 << (BITS_PER_WORD-1); /* initialize mask to the most significant bit */
     int i;
 
     for (i = 0; i < BITS_PER_WORD; i++, mask >>= 1) { /* shift the mask to the right by 1 */
@@ -273,14 +273,16 @@ char *binary_to_special(word binary_address){
 
 hash_map create_hash_map(){
     hash_map map;
+    hash_node *node;
     int i;
 
     for (i = 0; i < HASH_MAP_SIZE; i++) {
-        map.nodes[i].decimal_address = 0;
-        map.nodes[i].binary_address = 0;
+        node = get_hash_node(&map, i); /* get the i-th node from the hash map */
+        set_decimal_address(node, 0);
+        set_binary_address(node, 0);
     }
-
-    map.nodes[0].decimal_address = START_MEMORY;
+    /* set the decimal address of the first node to START_MEMORY */
+    set_decimal_address(get_hash_node(&map, 0), START_MEMORY);
 
     return map;
 }
@@ -289,20 +291,23 @@ int hash_function(int decimal_address) {
     return decimal_address % HASH_MAP_SIZE;
 }
 
-void insert(struct hash_map *map, int decimal_address, char *code, unsigned short int binary_address) {
+void insert(struct hash_map *map, int decimal_address, char *code, word binary_address) {
     int index = hash_function(decimal_address);
-    map->nodes[index].decimal_address = decimal_address;
-    strcpy(map->nodes[index].code, code);
-    map->nodes[index].binary_address = binary_address;
+    hash_node *node = get_hash_node(map, index);
+
+    set_decimal_address(node, decimal_address);
+    set_code(node, code);
+    set_binary_address(node, binary_address);
 }
 
-unsigned short int get_binary_code_for_decimal_address(struct hash_map *map, int decimal_address) {
+word get_binary_code_for_decimal_address(struct hash_map *map, int decimal_address) {
     int index = hash_function(decimal_address);
-    return map->nodes[index].binary_address;
+    return get_binary_address(get_hash_node(map, index));
 }
 
 void print_all_addresses(hash_map *map, int map_counter) {
     int i;
+    hash_node *node;
 
     /* If the map is empty */
     if(map==NULL){
@@ -315,27 +320,27 @@ void print_all_addresses(hash_map *map, int map_counter) {
     printf("Decimal address\t|\tCode \t|\tBinary address\n");
     printf("-------------------------------------------------------------\n");
     for (i = START_MEMORY; i < map_counter; i++) {
-        printf("\t%d\t|\t", map->nodes[i].decimal_address);
-        if (map->nodes[i].code[strlen(map->nodes[i].code)-1]=='\"') {
-            printf("%c\t|\t", map->nodes[i].code[0]);
+        node = get_hash_node(map, i);
+        printf("\t%d\t|\t", get_decimal_address(node));
+        if (node && get_code(node) && get_code(node)[strlen(get_code(node))-1]=='\"') {
+            printf("%c\t|\t", get_code(node)[0]);
         } else {
-            printf("%s\t|\t", map->nodes[i].code);
+            printf("%s\t|\t", get_code(node));
         }
-        print_word_bits(map->nodes[i].binary_address);
+        print_word_bits(get_binary_address(node));
     }
 }
-
 
 word label_to_word(symbol_table *st, char *label_name){
     int decimal_address;
     symbol_entry *label_entry;
 
-    label_entry = get_label(st, label_name);
-    if (label_entry->is_extern==true){
+    label_entry = lookup_label(st, label_name);
+    if (get_is_extern(label_entry)){
         return EXTERNAL;
     }
-    decimal_address = label_entry->address;
-    return ((decimal_address<<ARE_SHIFT)|RELOCATABLE) ;
+    decimal_address = get_address(label_entry);
+    return ((decimal_address<<ARE_SHIFT) | RELOCATABLE) ;
 }
 
 word num_label_register(symbol_table *st, char *str){
@@ -349,7 +354,6 @@ word num_label_register(symbol_table *st, char *str){
     /* For number */
     return ABSOLUTE;
 }
-
 
 word num_to_word(char *num) {
     int number;

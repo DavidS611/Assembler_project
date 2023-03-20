@@ -9,7 +9,7 @@ void first_pass(char *file_name, FILE *fp_am){
     rewind(fp_am);
     ic = START_MEMORY;
     dc = 0;
-    st->head = NULL;
+    set_head(st, NULL);
     generate_filename(file_name, ".am", &file_am);
 
     /* Filling the symbol-table */
@@ -29,19 +29,20 @@ void first_pass(char *file_name, FILE *fp_am){
     /* Redefine entry labels */
     define_entry_labels(file_am, error_state, fp_am, st);
 
+    /* Error check */
     line_number=1;
     rewind(fp_am);
     while(fgets(line, LINE_SIZE, fp_am)!=NULL) {
         syntax_errors(file_am, line, &error_state, line_number++, st);
     }
 
-    /*print_symbol_table(st);*/
     /* If error was found don't continue to the second pass */
     if(error_state){
         free(file_am);
         free_symbol_table(st);
         return;
     }
+
     second_pass(file_name, st, fp_am, ic, dc);
     free(file_am);
     free_symbol_table(st);
@@ -57,30 +58,29 @@ void define_entry_labels(char *file_name, int error_state, FILE *fp_am, symbol_t
         if(strstr(line, ".entry")!=NULL){
             label_name = strstr(line, ".entry") + strlen(".entry");
             label_name = strtok_trimmed(label_name, DELIMITER);
-            curr = get_label(st, label_name);
+            curr = lookup_label(st, label_name);
             /* If label name doesn't exist */
             if (curr==NULL){
                 return;
             }
-            curr->is_entry = true;
-            curr->is_code = false;
-            curr->is_data = false;
+            set_is_entry(curr, true);
+            set_is_code(curr, false);
+            set_is_data(curr, false);
         }
 
         /* Check for invalid label - defined as extern and entry simultaneously */
-        curr = st->head;
+        curr = get_head(st);
         while (curr != NULL) {
-            if(curr->is_extern==true && curr->is_entry==true){
+            if(get_is_extern(curr) && get_is_entry(curr)){
                 error_msg(file_name, NO_ARGUMENT, &error_state,
-                          3, "Label can't be entry and extern simultaneously: \'", curr->label, "\'.");
+                          3, "Label can't be entry and extern simultaneously: \'", get_label(curr), "\'.");
             }
-            curr = curr->next;
+            curr = get_next(curr);
         }
     }
 
 }
 
-/* Assumes there is no syntax errors */
 void insert_label(char *file_name, int *error_state, int line_number, symbol_table *st, char *line, int *instruction_counter, int *data_counter) {
     char copy_line[LINE_SIZE], *label_name, *instruction;
     symbol_entry *new_entry = malloc(sizeof(symbol_entry));
@@ -89,7 +89,10 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
         error_msg(file_name, line_number, error_state,
                   1,"Failed to allocate memory for label entry.");
     }
-    new_entry->is_extern = new_entry->is_data = new_entry->is_entry = new_entry->is_code = false;
+    set_is_code(new_entry, false);
+    set_is_data(new_entry, false);
+    set_is_extern(new_entry, false);
+    set_is_entry(new_entry, false);
 
     strcpy(copy_line, line);
     if (strchr(copy_line, ':')!=NULL) {
@@ -105,8 +108,8 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
         return;
     }
     if(strcmp(instruction, ".data")==TRUE || strcmp(instruction, ".string")==TRUE){
-        new_entry->is_data=true;
-        new_entry->address = *data_counter;
+        set_is_data(new_entry, true);
+        set_address(new_entry, *data_counter);
     }
     else if(strcmp(instruction, ".extern")==TRUE){
         label_name = strtok_trimmed(NULL, DELIMITER);
@@ -115,7 +118,7 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
             free(new_entry);
             return;
         }
-        new_entry->is_extern = true;
+        set_is_extern(new_entry, true);
     }
     else{
         /* Check if the label is already exists */
@@ -123,14 +126,13 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
             error_msg(file_name, line_number, error_state, 1, "Label name already exists.");
         }
 
-        new_entry->is_code = true;
-        new_entry->address = *instruction_counter;
+        set_is_code(new_entry, true);
+        set_address(new_entry, *instruction_counter);
     }
 
-    new_entry->label = _strdup(file_name, label_name);
-
-    new_entry->next = st->head;
-    st->head = new_entry;
+    set_label(new_entry, _strdup(file_name, label_name));
+    set_next(new_entry, get_head(st));
+    set_head(st, new_entry);
 }
 
 int data_counter(char *line) {
@@ -143,9 +145,10 @@ int data_counter(char *line) {
     if (is_data == 0 && is_string == 0) {
         return 0;
     }
+
     strcpy(copy_line, line);
     if (is_data) {
-        /* counter equal to 1 for the first integer, before each integer there is comma, so I count the commas instead*/
+        /* Counter equal to 1 for the first integer, before each integer there is comma, so I count the commas instead*/
         for (i = 0, counter = 1; i < strlen(line); i++) {
             if (line[i] == ',') {
                 counter++;
@@ -155,6 +158,7 @@ int data_counter(char *line) {
     } else {
         token = strchr(line, '"'); /* points to the start of the string */
         trim_whitespace(token);
+        /* If the string is only one quotation mark */
         if(token==NULL)
             return counter;
         /* The length of the string with quotation marks - 1 is equal to the string with the null terminator */
@@ -181,16 +185,12 @@ int instruction_counter(char *line){
 
     /* Check if the instruction is one of the jump instruction */
     if(instruction!=NULL)
-        is_jump_instruction = strcmp(instruction, "jmp") == 0 ||
-                              strcmp(instruction, "bne") == 0 ||
-                              strcmp(instruction, "jsr") == 0;
+        is_jump_instruction = strcmp(instruction, "jmp") == 0 || strcmp(instruction, "bne") == 0 || strcmp(instruction, "jsr") == 0;
 
     /* Get the first parameter of the instruction */
     parameter1 = strtok(NULL, ",");
 
     /* Calculate the number of memory words required based on the instruction type and parameters */
-
-    /* First group instructions have two operands */
     if(first_group_instructions(instruction)){
         parameter2 = strtok(NULL, DELIMITER);
         trim_whitespace(parameter1);
@@ -202,8 +202,7 @@ int instruction_counter(char *line){
             return 3; /* Explain: instruction word + source operand word + destination operand word */
         }
     }
-
-        /* Second group instructions have one operand, and might have two parameters (in case of one of the jmp instructions) */
+    /* Second group instructions have one operand, and might have two parameters (in case of one of the jmp instructions) */
     else if(parameter1!=NULL && second_group_instructions(instruction)){
         parameter2 = strtok(NULL, DELIMITER);
         /* Case of two parameters for one of the jmp instructions */
@@ -218,36 +217,36 @@ int instruction_counter(char *line){
                 return 4;  /* Explain: instruction word + label word + parameter 1 word + parameter 2 word */
             }
         }
-            /* One operand without parameters */
+        /* Third group one operand without parameters */
         else{
             return 2; /* Explain: instruction word + destination operand word */
         }
     }
-
-        /* Third group instructions have no parameters */
+    /* Third group instructions have no parameters */
     else if(third_group_instructions(instruction)){
         return 1; /* Explain: instruction word */
     }
-
     return 0;
 }
 
 void correcting_data(symbol_table *st, int ic) {
-    symbol_entry *current = st->head;
+    symbol_entry *current = get_head(st);
+    int new_address;
     while (current != NULL) {
-        if (current->is_data==true) {
-            current->address += ic;
+        if (get_is_data(current)) {
+            new_address = get_address(current) + ic;
+            set_address(current, new_address);
         }
-        current = current->next;
+        current = get_next(current);
     }
 }
 
 void print_symbol_table(symbol_table* st) {
-    symbol_entry* curr = st->head;
-    char type[6];
+    symbol_entry* curr = get_head(st);
+    char type[6]; /* The longest type is 'EXTERN', so the array is of size 6 to accommodate any of the possible types */
 
     /* Skip printing if the symbol table is empty */
-    if (st->head == NULL) {
+    if (curr == NULL) {
         return;
     }
     /* Printing the symbol table */
@@ -257,26 +256,25 @@ void print_symbol_table(symbol_table* st) {
     printf("decimal address |\tlabel name  |\ttype\n");
     printf("----------------------------------------------------\n");
     while (curr != NULL) {
-        printf("\t%d\t|\t%s\t    |\t", curr->is_extern==true ?  0: curr->address, curr->label);
-        strcpy(type, curr->is_data==true ? "DATA" :
-                (curr->is_code==true ? "CODE" :
-                curr->is_entry==true ? "ENTRY" : "EXTERN"));
+        printf("\t%d\t|\t%s\t    |\t", (get_is_extern(curr) ?  0: get_address(curr)), get_label(curr));
+        strcpy(type, get_is_data(curr) ? "DATA" : (get_is_code(curr) ? "CODE" : get_is_entry(curr)? "ENTRY" : "EXTERN"));
         printf("%s\n", type);
-        curr = curr->next;
+        curr = get_next(curr);
     }
     putchar('\n');
 }
 
 void free_symbol_table(symbol_table* table) {
-    symbol_entry* entry = table->head;
+    symbol_entry* entry = get_head(table);
     symbol_entry* next_entry;
 
     while (entry != NULL) {
-        next_entry = entry->next;
-        free(entry->label);
+        next_entry = get_next(entry);
+        free(get_label(entry));
         free(entry);
         entry = next_entry;
     }
 
     free(table);
 }
+
