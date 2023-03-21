@@ -20,14 +20,12 @@ void assembler(int number_of_arg, char *file[]){
         if (as_filename==NULL){
             exit(EXIT_FAILURE);
         }
-
         /* Opening the file.as in read only mode */
         fp = open_file(as_filename, "r");
         if (fp==NULL){
             free(as_filename);
             exit(EXIT_FAILURE);
         }
-
         /* Generate filename with the suffix of '.am' */
         generate_filename(file[i], ".am", &expanded_macro_file);
         if (expanded_macro_file==NULL){
@@ -40,18 +38,13 @@ void assembler(int number_of_arg, char *file[]){
             free_pointers(3, as_filename, fp, expanded_macro_file);
             exit(EXIT_FAILURE);
         }
-
         /* Expanding the macros inside the original file: <file>.as */
         preassembler(as_filename, fp, fp_am);
-
         /* First pass: creating symbol table & hash map in the second pass */
         first_pass(file[i], fp_am);
-
         /* Deleting the expanded macro file */
-        /*delete_file(expanded_macro_file, NULL);*/
-
+        delete_file(expanded_macro_file, NULL);
         i++; /* Continue to the next file */
-
         /* Freeing memory & closing files */
         free_pointers( 2, as_filename, expanded_macro_file);
         close_files(2, fp, fp_am);

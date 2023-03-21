@@ -13,8 +13,7 @@ void generate_filename(char *filename, char *suffix, char **new_filename) {
     char *temp_filename = malloc(len * sizeof(char));
 
     if (temp_filename == NULL) {
-        error_msg(filename, NO_ARGUMENT, NO_ARGUMENT,
-                  4, "Failed to allocate memory for file name: \'", filename, suffix, "\'");
+        error_msg(filename, NO_ARGUMENT, NO_ARGUMENT,4, "Failed to allocate memory for file name: \'", filename, suffix, "\'");
     }
 
     strcpy(temp_filename, filename);
@@ -44,17 +43,15 @@ void close_files(int count, ...) {
     FILE* fp;
 
     va_start(args, count); /* Initialize the argument list. */
-    /* Loop through each file pointer passed in. */
+    /* Loop through each file pointer */
     for (i = 0; i < count; i++) {
         /* Get the next file pointer from the argument list. */
         fp = va_arg(args, FILE*);
-
         /* If the file pointer is not null, close it. */
         if (fp != NULL) {
             fclose(fp);
         }
     }
-
     va_end(args); /* Clean up the argument list. */
 }
 
@@ -63,11 +60,13 @@ void free_pointers(int count, ...) {
     va_list args;
 
     va_start(args, count);  /* initialize variable argument list */
+    /* Loop through each pointer */
     for (i = 0; i < count; i++) {
-        void* ptr = va_arg(args, void*); /* get next pointer from argument list */
+        /* Get the next pointer from argument list */
+        void* ptr = va_arg(args, void*);
         free(ptr);
     }
-    va_end(args); /* end variable argument list */
+    va_end(args); /* Clean up the argument list. */
 }
 
 bool empty_line(char line[]){
@@ -79,14 +78,13 @@ bool empty_line(char line[]){
     if(line[i]==';' || line[i] == '\n' || line[i]=='\0')
         return true;
     return false;
-
 }
 
 void remove_comment(char *str){
     char *end;
+
     /* Find the first occurrence of the ';' character */
     end = strchr(str, ';');
-
     /* If there is a comment, terminate the string at the ';' character */
     if (end != NULL) {
         *end = '\0';
@@ -120,10 +118,10 @@ char * strtok_trimmed(char *str, const char *delim) {
     return token;
 }
 
-
 char *_strdup(char *filename, const char *str){
     char *p;
 
+    /* Null pointer check */
     if(str == NULL){
         return NULL;
     }
@@ -143,11 +141,13 @@ bool is_register(const char *str){
     int i, num_registers = sizeof(register_names) / sizeof(register_names[0]);
     int str_len;
 
+    /* Null pointer check */
     if(str==NULL) {
         return false;
     }
+    /* Length of str both cases with and without newline at the end */
     str_len = (strchr(str, '\n') ? strlen(str) - 1 : strlen(str));
-
+    /* Loop through each register string for comparison */
     for (i = 0; i < num_registers; i++) {
         if (strncmp(str, register_names[i], str_len) == 0) {
             return true; /* str is a reserved register name */
@@ -160,13 +160,15 @@ bool first_group_instructions(const char *instruction){
     int i, num_instructions, instructions_len;
     const char *instruction_names[] = {"mov", "cmp", "add", "sub", "lea"};
 
+    /* Number of instruction names array */
     num_instructions = sizeof(instruction_names) / sizeof(instruction_names[0]);
+    /* Null pointer check */
     if(instruction==NULL){
         return false;
     }
-
+    /* Length of instruction string with and without a newline at the end */
     instructions_len = (strchr(instruction, '\n') ? strlen(instruction) - 1 : strlen(instruction));
-
+    /* Loop through each instruction string for comparison */
     for (i = 0; i < num_instructions; i++) {
         if (strncmp(instruction, instruction_names[i], instructions_len) == 0) {
             return true; /* instruction is a reserved instruction name */
@@ -179,13 +181,15 @@ bool second_group_instructions(const char *instruction){
     int i, num_instructions, instructions_len;
     const char *instruction_names[] = {"not","clr","inc", "dec","jmp","bne", "red", "prn","jsr"};
 
+    /* Number of instruction names array */
     num_instructions = sizeof(instruction_names) / sizeof(instruction_names[0]);
-
+    /* Null pointer check */
     if(instruction==NULL){
         return false;
     }
+    /* Length of instruction string with and without a newline at the end */
     instructions_len = (strchr(instruction, '\n') ? strlen(instruction) - 1 : strlen(instruction));
-
+    /* Loop through each instruction string for comparison */
     for (i = 0; i < num_instructions; i++) {
         if (strncmp(instruction, instruction_names[i], instructions_len) == 0) {
             return true; /* instruction is a reserved instruction name */
@@ -199,11 +203,13 @@ bool third_group_instructions(const char *instruction){
     int i, num_instructions = sizeof(instruction_names) / sizeof(instruction_names[0]);
     int instructions_len;
 
+    /* Null pointer check */
     if(instruction==NULL){
         return false;
     }
+    /* Length of instruction string with and without a newline at the end */
     instructions_len = (strchr(instruction, '\n') ? strlen(instruction) - 1 : strlen(instruction));
-
+    /* Loop through each instruction string for comparison */
     for (i = 0; i < num_instructions; i++) {
         if (strncmp(instruction, instruction_names[i], instructions_len) == 0) {
             return true; /* instruction is a reserved instruction name */
@@ -213,16 +219,13 @@ bool third_group_instructions(const char *instruction){
 }
 
 bool is_instruction(const char *str){
-    if(first_group_instructions(str) ||
-       second_group_instructions(str) ||
-       third_group_instructions(str))
+    if(first_group_instructions(str) || second_group_instructions(str) || third_group_instructions(str))
         return true;
     return false;
 }
 
 bool is_directive(const char *str){
-    if(strcmp(str, ".extern")==0 || strcmp(str, ".entry")==0 ||
-       strcmp(str, ".data")==0 || strcmp(str, ".string")==0){
+    if(strcmp(str, ".extern")==0 || strcmp(str, ".entry")==0 || strcmp(str, ".data")==0 || strcmp(str, ".string")==0){
         return true;
     }
     return false;
@@ -235,11 +238,15 @@ bool is_reserved(const char *str){
                                     "inc", "dec", "jmp", "bne", "red", "prn","jsr",
                                     "rts", "stop", ".data", ".string",
                                     ".extern", ".entry","mcr", "endmcr"};
-    num_names = sizeof(reserved_names) / sizeof(reserved_names[0]);
-    if(str==NULL) /* A null pointer was passed in */
-        return false;
-    str_len = (strchr(str, '\n') ? strlen(str) - 1 : strlen(str));
 
+    /* Number of reserved names array */
+    num_names = sizeof(reserved_names) / sizeof(reserved_names[0]);
+    /* Null pointer check */
+    if(str==NULL)
+        return false;
+    /* Length of string with and without a newline at the end */
+    str_len = (strchr(str, '\n') ? strlen(str) - 1 : strlen(str));
+    /* Loop through each reserved string for comparison */
     for (i = 0; i < num_names; i++) {
         if (strncmp(str, reserved_names[i], str_len) == 0 && reserved_names[i][str_len]=='\0') {
             return true; /* str is a reserved register name */
@@ -250,8 +257,11 @@ bool is_reserved(const char *str){
 
 bool is_label(symbol_table *st, char *str) {
     symbol_entry *curr = get_head(st);
+
+    /* Null pointer check */
     if (str==NULL)
         return false;
+    /* Loop through each label name for comparison */
     while (curr != NULL) {
         if (strcmp(get_label(curr), str) == 0) {
             return true;
@@ -264,13 +274,16 @@ bool is_label(symbol_table *st, char *str) {
 bool is_num(char *str_num){
     int i;
     char *ptr;
+
+    /* First char have to be '#' check */
     if (str_num[0]!='#')
         return false;
-    ptr = str_num+1;
+    ptr = str_num+1; /* Points after '#' char */
+    /* First number char check */
     if (*ptr!='+'&& *ptr!='-' && isdigit(*ptr)==false)
         return false;
-    ptr++;
-    /* Checks whether there is a digit after '+' or '-' */
+    ptr++; /* Points after first number char */
+    /* All the other chars are digits check  */
     for (i=0; i< strlen(ptr); i++){
         if (isdigit(*ptr)==false)
             return false;
@@ -280,8 +293,11 @@ bool is_num(char *str_num){
 
 symbol_entry *lookup_label(symbol_table *st, char *str) {
     symbol_entry *curr = get_head(st);
+
+    /* Null pointer check */
     if (str == NULL)
         return NULL;
+    /* Loop through each label for comparison */
     while (curr != NULL) {
         if (strcmp(get_label(curr), str) == 0) {
             return curr;
@@ -291,19 +307,21 @@ symbol_entry *lookup_label(symbol_table *st, char *str) {
     return NULL;
 }
 
-
 void error_msg(char* filename, const int line_number, int* error_state, int count, ...) {
     int i;
     va_list args;
     va_start(args, count);
 
     fprintf(stdout, ERROR_MSG );
+    /* File name print */
     if(filename!=NULL) {
         fprintf(stdout, BLUE"%s: "WHITE, filename);
     }
+    /* Line number print */
     if (line_number != 0) {
         fprintf(stdout, LINE_MSG "%d: ", line_number);
     }
+    /* Arguments print */
     for (i = 0; i < count; i++) {
         char* arg = va_arg(args, char*);
         fprintf(stdout, "%s", arg);
@@ -323,12 +341,15 @@ void warning_msg(char* filename, int line_number, int count, ...){
     va_start(args, count);
 
     fprintf(stdout, WARNING_MSG );
+    /* File name print */
     if(filename!=NULL) {
         fprintf(stdout, BLUE"%s: "WHITE, filename);
     }
+    /* Line number print */
     if (line_number != 0) {
         fprintf(stdout, LINE_MSG "%d: ", line_number);
     }
+    /* Arguments print */
     for (i = 0; i < count; i++) {
         char* arg = va_arg(args, char*);
         fprintf(stdout, "%s", arg);

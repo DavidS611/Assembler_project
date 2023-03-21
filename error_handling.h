@@ -69,4 +69,15 @@ void first_group_check(char *file, int line_number, int *error_state, symbol_tab
  */
 void second_group_check(char *file, int line_number, int *error_state, symbol_table *st, char *line);
 
+/**
+ * Checks the syntax of a line of assembly code and reports any errors found.
+ * @param file - the name of the source file being checked
+ * @param line - the line of code being checked
+ * @param error_state - a pointer to an integer that stores the current error state
+ * @param line_number - the line number of the code being checked
+ * @param st - a pointer to the symbol table
+ */
+void syntax_errors(char *file, char *line, int *error_state, int line_number, symbol_table *st);
+
+
 #endif /* MMN14_ERROR_HANDLING_H */

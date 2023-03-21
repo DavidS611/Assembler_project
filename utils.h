@@ -11,19 +11,20 @@
 
 #define LINE_SIZE 81 /* Maximum line length in source file is 80 characters (excluding \n). */
 #define START_MEMORY 100 /* Assuming code starts at address 100 */
+#define MAX_SYSTEM_MEMORY 256
 
 #define ERROR_MSG "\x1b[31mERROR:\x1b[0m "
 #define WARNING_MSG "\x1b[35mWARNING:\x1b[0m "
 #define LINE_MSG "\x1b[34mLINE\x1b[0m  "
 #define BLUE "\033[1;34m"
 #define WHITE "\033[0m"
+
 #define DELIMITER "\n \t"
 #define COMMA ","
 #define NEW_LINE "\n"
+
 #define NO_ARGUMENT 0
-
-
-enum err{ERROR = -1, NO_ERROR = 0};
+#define NO_ERROR 0
 
 /**
  * Opens a file with the given filename and mode.

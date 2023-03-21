@@ -11,8 +11,7 @@ void label_check(char *file, int *error_state, int line_number, char *line){
 
     /* Empty label name check*/
     if(line[0]==':'){
-        error_msg(file, line_number, error_state,
-                  1, "Invalid label name, label name must contain at least one letter or number.");
+        error_msg(file, line_number, error_state,1, "Invalid label name, label name must contain at least one letter or number.");
     }
     else {
         /* First letter check */
@@ -22,27 +21,23 @@ void label_check(char *file, int *error_state, int line_number, char *line){
         /* Letters and numbers inside the label name check */
         for (i = 0; label != NULL && i < strlen(label); i++) {
             if (isalnum(label[i]) == 0) {
-                error_msg(file, line_number, error_state,
-                          1, "Invalid label name, label name must contain only letters or numbers.");
+                error_msg(file, line_number, error_state,1, "Invalid label name, label name must contain only letters or numbers.");
             }
         }
         /* Label name length check */
         if (label != NULL && strlen(label) >= LABEL_SIZE - 1) {
-            error_msg(file, line_number, error_state,
-                      1, "Label name can not be longer than 30 characters.");
+            error_msg(file, line_number, error_state,1, "Label name can not be longer than 30 characters.");
         }
         /* Reserved system names check */
         if (label != NULL && is_reserved(label)) {
-            error_msg(file, line_number, error_state,
-                      1, "Label name can not be a reserved word in the system.");
+            error_msg(file, line_number, error_state,1, "Label name can not be a reserved word in the system.");
         }
     }
 
     /* Whitespace check after label name */
     ptr = (strchr(line, ':')+1); /* points to the whitespace after label name (including ':') */
     if(*ptr!='\0' && isspace(*ptr)==false){
-        error_msg(file, line_number, error_state,
-                  1, "There should be whitespaces between the label name and instruction or directive.");
+        error_msg(file, line_number, error_state,1, "There should be whitespaces between the label name and instruction or directive.");
     }
 }
 
@@ -68,13 +63,11 @@ void data_check(char *file, int *error_state, int line_number ,char *line){
         }
         /* First number char check for each number provided */
         else if(param1[0]!='-' && param1[0]!='+' && isdigit(param1[0])==0) {
-            error_msg(file, line_number, error_state,
-                      1, "Number can start only with '+' or '-' or a digit number.");
+            error_msg(file, line_number, error_state,1, "Number can start only with '+' or '-' or a digit number.");
         }
         /* Range of number check */
         if(atoi(param1)>=8191 || atoi(param1)<(-8192)){
-            error_msg(file, line_number, error_state,
-                      3, "Invalid number: \'", param1, "\' out of range.");
+            error_msg(file, line_number, error_state,3, "Invalid number: \'", param1, "\' out of range.");
         }
         /* Check if one of the chars isn't a digit */
         for(i=0; i< strlen(param1); i++){
@@ -100,7 +93,6 @@ void data_check(char *file, int *error_state, int line_number ,char *line){
     if (*(ptr-1)==','){
         error_msg(file, line_number, error_state,1, "Extraneous text after end of '.data' directive.");
     }
-
 }
 
 void string_check(char *file, int line_number, int *error_state, char *line) {
@@ -157,8 +149,7 @@ void extern_check(char *file, int line_number, int *error_state, char *line){
     /* Extra chars check */
     extern_label = strtok_trimmed(NULL, NEW_LINE); /* Chars after extern label name without whitespaces */
     if(extern_label!=NULL){
-        error_msg(file, line_number, error_state,
-                  1,"Extraneous text after end of '.extern' directive.");
+        error_msg(file, line_number, error_state,1,"Extraneous text after end of '.extern' directive.");
     }
 }
 
@@ -193,8 +184,7 @@ void entry_check(char *file, int line_number, int *error_state, symbol_table *st
     /* Extra chars check */
     label = strtok_trimmed(NULL, NEW_LINE); /* Chars after entry label name */
     if(label!=NULL){
-        error_msg(file, line_number, error_state,
-                  1,"Extraneous text after end of '.entry' directive.");
+        error_msg(file, line_number, error_state,1,"Extraneous text after end of '.entry' directive.");
     }
 }
 
@@ -362,8 +352,7 @@ void syntax_errors(char *file, char *line, int *error_state, int line_number, sy
     }
     /* Undefined instruction check */
     else if(instruction!=NULL && is_instruction(instruction)==false && is_directive(instruction)==false){
-        error_msg(file, line_number, error_state,
-                  1, "Undefined instruction or directive.");
+        error_msg(file, line_number, error_state,1, "Undefined instruction or directive.");
     }
     /* Check errors '.data' directive */
     else if(strcmp(instruction, ".data")==TRUE){

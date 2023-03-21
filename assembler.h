@@ -7,7 +7,6 @@
 
 /**
  * Assembles one or more source files into machine code.
- *
  * @param number_of_arg - The number of arguments passed to the program.
  * @param file - An array of strings that contains the filenames of the source files to be assembled.
  */

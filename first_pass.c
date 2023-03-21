@@ -18,14 +18,12 @@ void first_pass(char *file_name, FILE *fp_am){
         if(strstr(line, ".entry")==NULL && (strchr(line, ':')!=NULL || strstr(line, ".extern")!=NULL)){
             insert_label(file_am, &error_state, line_number, st, line, &ic, &dc);
         }
-        dc += data_counter(line);
-        ic += instruction_counter(line);
-
+        dc += data_counter(line); /* Update data counter */
+        ic += instruction_counter(line); /* Update instruction counter */
         line_number++;
     }
-
+    /* Directives will be after instructions */
     correcting_data(st, ic);
-
     /* Redefine entry labels */
     define_entry_labels(file_am, error_state, fp_am, st);
 
@@ -34,6 +32,11 @@ void first_pass(char *file_name, FILE *fp_am){
     rewind(fp_am);
     while(fgets(line, LINE_SIZE, fp_am)!=NULL) {
         syntax_errors(file_am, line, &error_state, line_number++, st);
+    }
+
+    /* Check if the combined size of instruction and data memory exceeds the maximum allowed memory size for the system */
+    if(ic+dc > MAX_SYSTEM_MEMORY){
+        error_msg(file_name, NO_ARGUMENT, &error_state, 1, "Maximum system memory capacity reached.");
     }
 
     /* If error was found don't continue to the second pass */
@@ -56,24 +59,21 @@ void define_entry_labels(char *file_name, int error_state, FILE *fp_am, symbol_t
     while(fgets(line, LINE_SIZE, fp_am)!=NULL) {
         /* Define .entry labels */
         if(strstr(line, ".entry")!=NULL){
-            label_name = strstr(line, ".entry") + strlen(".entry");
-            label_name = strtok_trimmed(label_name, DELIMITER);
-            curr = lookup_label(st, label_name);
+            label_name = strstr(line, ".entry") + strlen(".entry"); /* Points after .entry directive */
+            label_name = strtok_trimmed(label_name, DELIMITER); /* Label name to be defined as entry */
+            curr = lookup_label(st, label_name); /* curr points to the label inside the symbol table if exists */
             /* If label name doesn't exist */
             if (curr==NULL){
                 return;
             }
             set_is_entry(curr, true);
-            set_is_code(curr, false);
-            set_is_data(curr, false);
         }
 
         /* Check for invalid label - defined as extern and entry simultaneously */
         curr = get_head(st);
         while (curr != NULL) {
             if(get_is_extern(curr) && get_is_entry(curr)){
-                error_msg(file_name, NO_ARGUMENT, &error_state,
-                          3, "Label can't be entry and extern simultaneously: \'", get_label(curr), "\'.");
+                error_msg(file_name, NO_ARGUMENT, &error_state,3, "Label can't be entry and extern simultaneously: \'", get_label(curr), "\'.");
             }
             curr = get_next(curr);
         }
@@ -85,24 +85,25 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
     char copy_line[LINE_SIZE], *label_name, *instruction;
     symbol_entry *new_entry = malloc(sizeof(symbol_entry));
 
+    /* Allocation check */
     if (!new_entry) {
-        error_msg(file_name, line_number, error_state,
-                  1,"Failed to allocate memory for label entry.");
+        error_msg(file_name, line_number, error_state,1,"Failed to allocate memory for label entry.");
     }
+    /* Initializing */
     set_is_code(new_entry, false);
     set_is_data(new_entry, false);
     set_is_extern(new_entry, false);
     set_is_entry(new_entry, false);
 
     strcpy(copy_line, line);
+    /* Optional label name check */
     if (strchr(copy_line, ':')!=NULL) {
         label_name = strtok(copy_line, ":");
         instruction = strtok_trimmed(NULL, DELIMITER);
     }else{
         instruction = strtok_trimmed(copy_line, DELIMITER);
     }
-
-    /* No instruction */
+    /* No instruction check */
     if (instruction==NULL){
         free(new_entry);
         return;
@@ -124,38 +125,43 @@ void insert_label(char *file_name, int *error_state, int line_number, symbol_tab
         /* Check if the label is already exists */
         if (is_label(st, label_name)){
             error_msg(file_name, line_number, error_state, 1, "Label name already exists.");
+            free(new_entry);
+            return;
         }
-
         set_is_code(new_entry, true);
         set_address(new_entry, *instruction_counter);
     }
-
+    /* Insert the new label */
     set_label(new_entry, _strdup(file_name, label_name));
     set_next(new_entry, get_head(st));
     set_head(st, new_entry);
 }
 
 int data_counter(char *line) {
-    int counter = 0, is_data = 0, is_string = 0, i;
+    int counter = 0, i;
+    bool is_data, is_string;
     char *token, copy_line[LINE_SIZE];
 
     /* Check if the line is a .string or .data directive */
     is_data = strstr(line, ".data") != NULL;
     is_string = strstr(line, ".string") != NULL;
-    if (is_data == 0 && is_string == 0) {
+    /* If it's not .data or .string directive */
+    if (is_data == false && is_string == false) {
         return 0;
     }
 
     strcpy(copy_line, line);
     if (is_data) {
-        /* Counter equal to 1 for the first integer, before each integer there is comma, so I count the commas instead*/
+        /* Counter equal to 1 for the first integer,
+         * before each integer there is comma, so I count the commas instead*/
         for (i = 0, counter = 1; i < strlen(line); i++) {
             if (line[i] == ',') {
                 counter++;
             }
         }
         return counter;
-    } else {
+    }
+    else { /* In case it is .string directive */
         token = strchr(line, '"'); /* points to the start of the string */
         trim_whitespace(token);
         /* If the string is only one quotation mark */

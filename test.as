@@ -10,7 +10,7 @@ a: .entry a         ; warning for first label
     .entry a1  r    ; extra chars
     .entry fsaf     ; doesn't exists
 b: .extern b        ; warning
-.extern             ;missing
+.extern             ; missing
 .extern a           ; entry & extern error
 .extern mov         ; reserve
 .extern c a         ; extra chars
@@ -39,25 +39,25 @@ lea #3 , r2         ; src err
 lea s1, #3          ; dest err
 inc #3              ; number err
 inc r1 instanceof   ; extra
-inc                 ;missing
+inc                 ; missing
 inc mov             ; reserve
 prn                 ; missing
-prn #3 r1           ;extra
-prn mov             ;reserve
+prn #3 r1           ; extra
+prn mov             ; reserve
 jmp #3              ; number err
 jmp r1 instanceof   ; extra
-jmp                 ;missing
+jmp                 ; missing
 jmp .string         ; dest invalid + reserve
 bne s1(r1 ,r2)      ; space err
 bne s1(r1 r2)       ; comma err
 jsr s1(r1,,r2)      ; err
 jmp asdd(r1,#3)     ; dest err
 jmp   s1(,r1)       ; missing
-jmp s1(s1,)         ;missing
+jmp s1(s1,)         ; missing
 jsr s1(s1,s1)  3    ; extra
 jsr s1 s1,s1)       ;
 jsr r1(r1,r1)       ; dest err
-jsr 41(#-4,#2)      ;dest err
+jsr 41(#-4,#2)      ; dest err
 rts instanceof      ; extra
 stop f              ; extra
 
@@ -119,3 +119,4 @@ bne s1(#3,s1)
 bne s1(#3,r2)
 rts
 stop
+; MAXIMUM MEMORY ERROR
