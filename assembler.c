@@ -6,14 +6,13 @@ void assembler(int number_of_arg, char *file[]){
     char *as_filename, *expanded_macro_file=NULL;
     int i=1;
 
-    /* Check if there is at least one command line argument.
-     * If not, print an error message and exit the program. */
+    /* Check if there is at least one assembler file in command line arguments */
     if (number_of_arg == 1) {
         error_msg(NULL, NO_ARGUMENT, NO_ARGUMENT, 1, "no file detected");
         exit(EXIT_FAILURE);
     }
 
-    /* Loop through each file argument */
+    /* Loop through each file assembler file */
     while(number_of_arg>i){
         /* Generate filename with the suffix of '.as' */
         generate_filename(file[i], ".as", &as_filename);
