@@ -13,10 +13,11 @@
 #define START_MEMORY 100 /* Assuming code starts at address 100 */
 #define MAX_SYSTEM_MEMORY 256
 
-#define ERROR_MSG "\x1b[31mERROR:\x1b[0m "
-#define WARNING_MSG "\x1b[35mWARNING:\x1b[0m "
-#define LINE_MSG "\x1b[34mLINE\x1b[0m  "
-#define BLUE "\033[1;34m"
+#define ERROR_MSG "ERROR\x1b[0m "
+#define WARNING_MSG "WARNING\x1b[0m "
+#define LINE_MSG "LINE\x1b[0m  "
+#define LIGHT_BLACK_CLR "\033[0;90m"
+#define RED_CLR "\033[0;31m"
 #define WHITE "\033[0m"
 
 #define DELIMITER "\n \t"

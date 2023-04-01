@@ -312,10 +312,10 @@ void error_msg(char* filename, const int line_number, int* error_state, int coun
     va_list args;
     va_start(args, count);
 
-    fprintf(stdout, ERROR_MSG );
+    fprintf(stdout, RED_CLR"%s:", ERROR_MSG );
     /* File name print */
     if(filename!=NULL) {
-        fprintf(stdout, BLUE"%s: "WHITE, filename);
+        fprintf(stdout, "%s: "WHITE, filename);
     }
     /* Line number print */
     if (line_number != 0) {
@@ -340,10 +340,10 @@ void warning_msg(char* filename, int line_number, int count, ...){
     va_list args;
     va_start(args, count);
 
-    fprintf(stdout, WARNING_MSG );
+    fprintf(stdout, LIGHT_BLACK_CLR"%s:", WARNING_MSG );
     /* File name print */
     if(filename!=NULL) {
-        fprintf(stdout, BLUE"%s: "WHITE, filename);
+        fprintf(stdout, "%s: "WHITE, filename);
     }
     /* Line number print */
     if (line_number != 0) {
